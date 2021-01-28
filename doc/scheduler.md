@@ -11,7 +11,10 @@ configured on a per-thread basis to be either priority based or round-robin.
 #### Thread States ####
 
 Threads are in one of two states: Completed or Interrupted. Threads always run to
-completion unless hardware interrupted. Even when blocked, a thread will run to completion.
+completion unless hardware interrupted. When a thread blocks, for example when
+waiting on a resource (PEND), the thread completion point (i.e. function return) is
+hidden in the PEND call, but the thread does indeed complete.
+
 An Interrupted thread is one that has been interrupted and the thread context remains
 on the stack. Multiple Interrupted threads will be in priority order on the stack,
 with the highest priority thread the closest to the top of the stack.
@@ -41,14 +44,18 @@ Upon exit, if an interrupted thread has been scheduled, its context will be
 on top of the stack. If a completed thread has been scheduled, a new exception
 frame is created on the stack. All the stacked values are don't-care, except
 for the PSR, the PC which points to the target thread along with R0 which is
-the thread paramteter (a pointer to the TCB), and the LR which points to the
+the thread parameter (a pointer to the TCB), and the LR which points to the
 scheduler entry helper function. PendSV returns the processor to Thread mode
 through the standard EXC_RETURN process.
 
 #### Priority ####
 
 Each thread has a unique priority. There may be a maximum of 32 threads.
-The priority range is 1 to 32 inclusive.
+The priority range is 0 to 32 inclusive, with higher numbers indicating
+higher priority. Priority 32 is the highest, and 0 is the lowest.
+Priority 0 is reserved for the idle thread, which cannot block on a resource
+although it can delay. The default priority 0 do-nothing idle thread may
+be overridden by a user supplied thread.
 
 #### Event Posting Behavior ####
 
