@@ -9,11 +9,17 @@ Writing a thread for eex is similar to most other RTOS's. A thread
 is not allowed to terminate, so it must be enclosed in a for(;;) or
 while(1) loop.
 
+Threads can only block in the main thread. Functions/subroutines/methods
+may not block or disaster will ensue.
+
 ### Variables ###
 
 A thread cannot have any auto variables that need to survive through a
 blocking call. In practice, it is better to have no auto variables at
 all in order to avoid potential problems.
+
+Functions may use auto variables since they are be definition not
+allowed to block.
 
 Thread variables can either be declared static or can be passed to the
 thread via the thread-local-storage pointer parameter that is passed
@@ -43,14 +49,16 @@ after the last call that blocked the thread.
 #### Static Variables ####
 
 ```
-void thread (void * const tls) {   // may be declared static if in same file as eexThreadCreate()
+void thread (void * const tls) {       // may be declared static if in same file as eexThreadCreate()
 	static int times = 4;          // static qualifer required, may be initialized
+	
+	< WHAT ABOUT ONE-TIME INITIALIZATION?? >
 
 	eexStartThread();
 		
 	for (;;) {                     // threads are always endless loops
-		ledFlash(times);           // some function to control external hardware
-		eexDelay(1000);            // wait one second
+		ledFlash(times);       // some function to control external hardware
+		eexDelay(1000);        // wait one second
 		times = times / 2;
 		ledFlash(times);
 		eexDelay(1000);
