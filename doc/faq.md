@@ -34,6 +34,13 @@ Post, but may not block. If it is architecturally convenient to block on a
 subroutine, the subroutine can be rewritten as a separate task and activated
 by a signal or queue.
 
+# When can I use Auto variables?    {#faq_when_use_Auto}
+Auto variables are destroyed whenever the thread blocks. So if you are ** SURE **
+that the auto variable won't be used past a potential blocking operation,
+then it is safe to use an auto variable. Auto variables are always OK in
+functions, since by definition functions cannot block. So for example a recursive
+function using auto variables is allowed.
+
 # What are the benefits of a stackless RTOS?    {#faq_stackless_benefits}
 The benefits of a stackless RTOS are primarily related to SRAM management. The
 most complicated part of configuring a conventional RTOS is sizing the task
