@@ -39,15 +39,14 @@ to the scheduler and gets called again if there are no threads ready.
 
 ### Dos and Don'ts ###
 
-DO:
-Assign each thread a unique priority from 1 to 32 inclusive.
-Make all local thread variables static. Functions may use auto variables.
-To profile interrupt handlers call EEX_PROFILE_ENTER and EEX_PROFILE_EXIT on the handler
-entry and exit.
-Threads are automatically profiled.
+DO:  
+* Assign each thread a unique priority from 1 to 32 inclusive.  
+* Make all local thread variables static. Functions may use auto variables.  
+* To profile interrupt handlers using Segger Sysview call EEX_PROFILE_ENTER and EEX_PROFILE_EXIT
+on the handler entry and exit. Threads are automatically profiled.
 
-DO NOT:
-Call a blocking operation (PEND or POST) from a subroutine, eexIdleHook(), or an interrupt handler.
+DO NOT:  
+* Call a blocking operation (PEND or POST) from a subroutine, eexIdleHook(), or an interrupt handler.
 PEND and POST may be called if they will not block (e.g. timeout = 0).
 
 ### Tips and Tricks ###
