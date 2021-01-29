@@ -3,6 +3,22 @@ Introduction {#mainpage}
 ============
 
 
+First, why another RTOS?  
+Every RTOS has different objectives which result in a set of compromises.  
+Here are the pain points this RTOS addresses:  
+* Complex configuration
+* Requiring a dedicated stack for each thread
+* Determining (guessing?) the correct stack size that doesn't waste space yet doesn't overflow
+* Trying to understand the hundreds of undecipherable files required to build
+
+This RTOS requires almost no configuration, threads do not have individual stacks, and it builds using three files.
+
+Of course there are compromises...  
+* Must be built using GCC (requires local labels and computed goto)
+* Threads can only block in the main routine, not in functions (subroutines)
+* Priority inversion cannot be addressed by hoisting the priority of a preempted thread
+
+
 ### Overview ###
 
 SRX is a multithreaded, preemptive, stackless real-time operating system. Whereas
