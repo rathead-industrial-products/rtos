@@ -27,11 +27,15 @@ The following c code (c++ friendly) must be compiled and linked in:
 ### Idle Hook ###
 
 The eexIdleHook() function is called when there are no threads ready to dispatch. This
-is a function, not a thread, and it must return. It is normally used to put the processor
-to sleep, and returns an integer representing the number of milliseconds the processor
-was asleep, which is added to the system timer. eexIdleHook() may pend and post, but must
-not block. The default function just returns to the scheduler and gets called again
-repeatedly until there is a thread ready.
+is a function, not a thread, and it must return. The idle function is normally used to put the processor to sleep, and returns an integer representing the number of milliseconds the processor was asleep, which is added to the system timer. eexIdleHook() may pend and post, but must not block. The default function just returns to the scheduler and gets called again repeatedly until there is a thread ready.
+
+To override the default implementation implement a function of the form:
+```
+uint32_t eexIdleHook(uint32_t sleep_for_ms) {
+    /* sleep for no longer than sleep_for_ms */
+    return (/* actual ms slept */);
+}
+```
 
 ### Dos and Don'ts ###
 
