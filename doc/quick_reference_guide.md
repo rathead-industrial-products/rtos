@@ -51,8 +51,8 @@ PEND and POST may be called if they will not block (e.g. timeout = 0).
 
 ### Tips and Tricks ###
 
-Call eexDelay(0) to cause the scheduler to run as a pseudo Yield().
-It will just dispatch the same thread again but it may be useful for debugging or profiling.
+Call eexDelay(0) as a pseudo Yield() to cause the scheduler to run. It will just dispatch the same 
+thread again but it may be useful for debugging or profiling.
 
 
 ### Examples ###
