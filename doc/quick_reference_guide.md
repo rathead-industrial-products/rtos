@@ -22,9 +22,6 @@ You must use the GNU compiler however, as eex relies on computed-goto's.
 
 Include eex_os.h. This is the public interface.
 
-eex_os.h will pull in:  
-* eex_kernel.h	- defines the internal interface needed by the macros in eex_os.h
-
 The following c code (c++ friendly) must be compiled and linked in:  
 * eex_kernel.c - kernel code  
 * eex_arm.c - processor specific code
