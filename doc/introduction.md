@@ -1,5 +1,5 @@
 
-Introduction {#mainpage}
+Introduction
 ============
 
 First, why another RTOS?  
