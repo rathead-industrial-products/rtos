@@ -33,7 +33,8 @@ To override the default implementation implement a function of the form:
 ```
 uint32_t eexIdleHook(uint32_t sleep_for_ms) {
     /* sleep for no longer than sleep_for_ms */
-    return (/* actual ms slept */);
+    /* return 0 immediately if sleep_for_ms is negative */
+    return (/* actual ms slept, or 0 if CPU clock has not been stopped */);
 }
 ```
 
