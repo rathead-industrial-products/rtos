@@ -36,7 +36,7 @@ lockless protocol. More complex operations such as scheduling that would
 normally be done in a locked critical section are performed in the PendSV
 exception handler. PendSV is set to be the lowest priority exception and so although it
 can be interrupted, by design it always runs to completion and so does not
-have to bee locked.
+have to be locked.
 
 
 ### Compiler Restrictions ###
