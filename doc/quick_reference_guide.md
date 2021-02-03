@@ -51,7 +51,7 @@ on the handler entry and exit. Threads are automatically profiled.
 DO NOT:  
 * Call a blocking operation (PEND or POST) from a function, eexIdleHook(), or an interrupt handler.
 PEND and POST may be called if they will not block (e.g. timeout = 0).
-* Worry about sizing thread stacks. You're welcome.
+* Concern yourself with properly sizing thread stacks. You're welcome.
 
 ### Tips and Tricks ###
 
