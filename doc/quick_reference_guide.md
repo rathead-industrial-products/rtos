@@ -9,14 +9,12 @@ If you are familiar with RTOS basics and want to jump right in, start here.
 
 ### Restrictions ###
 
-eex relies on GCC compiler extentions, specifically local labels and computed goto.
 eex runs on ARM M0/M0+/M3/M4 processors.
 
 Start with a simple blinky-type application that already compiles, loads, and runs
-when compiled with the GNU C compiler (-gnuSTD99). Once you have things up and
+when compiled with the GNU C compiler (-std=gnu99). eex relies on GCC compiler
+extentions, specifically local labels and computed goto. Once you have things up and
 running then you can go wild with C++ and other compiler options.
-
-You must use the GNU compiler however, as eex relies on computed-goto's.
 
 ### File Structure ###
 
