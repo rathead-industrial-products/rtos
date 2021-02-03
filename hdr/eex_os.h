@@ -20,18 +20,52 @@ extern "C" {
 /*******************************************************************************
  *
  *  eex Configuration Parameters
+ *
+ *  The user macros must be defined by the application, either by editing
+ *  this file or by including a separate .h file. All default macro values
+ *  can be overridden, making the separate .h file a clean option.
+ *
  */
 
-// Segger systemview support - 1 to enable, 0 to disable
+
+/*
+ *  Begin User Configurable Section
+ */
+
+#include "eex_user_config.h"      /* for example, put your macros in this file */
+
+/* Segger Systemview Support - 1 to enable, 0 to disable */
+#ifndef EEX_SEGGER_SYSTEMVIEW
 #define EEX_SEGGER_SYSTEMVIEW               0
+#endif
 
-// user configurable
+/* RTOS Configuration */
+#ifndef EEX_CFG_USER_THREADS_MAX
 #define EEX_CFG_USER_THREADS_MAX           32       // max 32, min 0 (still allows thread 0)
-#define EEX_USR_CFG_TIMER_THREADS_MAX       0       // Software timer configuration.
-#define EEX_USR_CFG_TIMER_THREAD_PRIORITY   0
+#endif
 
-// system characteristics
-#define EEX_CFG_CPU_FREQ                    48000000
+#ifndef EEX_USR_CFG_TIMER_THREADS_MAX
+#define EEX_USR_CFG_TIMER_THREADS_MAX       0       // Software timer configuration.
+#endif
+
+#ifndef EEX_USR_CFG_TIMER_THREAD_PRIORITY
+#define EEX_USR_CFG_TIMER_THREAD_PRIORITY   0
+#endif
+
+/* System Configuration */
+#ifndef __CORTEX_M
+#define __CORTEX_M                          0       // Cortex M0
+#endif
+
+#ifndef EEX_CFG_CPU_FREQ
+#define EEX_CFG_CPU_FREQ                    48000000    // 48 MHz
+#endif
+
+
+/*
+ *  End User Configurable Section
+ */
+
 
 // Interrupt priority levels. The lowest numbers are the highest priority.
 #define EEX_CFG_INT_PRI_PENDSV              255     // lowest possible, reserved for pendSV, aliases to 3 in M0 and 7 in M3/M4
