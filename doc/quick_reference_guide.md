@@ -40,13 +40,13 @@ uint32_t eexIdleHook(uint32_t sleep_for_ms) {
 ### Dos and Don'ts ###
 
 DO:  
-* Assign each thread a unique priority from 1 to 32 inclusive.  
-* Make all local thread variables static. Functions may use auto variables.  
+* Assign each thread a unique priority from 1 (lowest) to 32 (highest) inclusive.  
+* Make all local thread variables static or create a thread-local-storage struct to hold thread variables. Functions may use auto variables.  
 * To profile interrupt handlers using Segger Sysview call EEX_PROFILE_ENTER and EEX_PROFILE_EXIT
 on the handler entry and exit. Threads are automatically profiled.
 
 DO NOT:  
-* Call a blocking operation (PEND or POST) from a subroutine, eexIdleHook(), or an interrupt handler.
+* Call a blocking operation (PEND or POST) from a function, eexIdleHook(), or an interrupt handler.
 PEND and POST may be called if they will not block (e.g. timeout = 0).
 
 ### Tips and Tricks ###
