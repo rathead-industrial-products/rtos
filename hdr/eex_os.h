@@ -32,7 +32,7 @@ extern "C" {
  *  Begin User Configurable Section
  */
 
-#include "eex_user_config.h"      /* for example, put your macros in this file */
+//#include "eex_user_config.h"      /* for example, put your macros in this file */
 
 /* Segger Systemview Support - 1 to enable, 0 to disable */
 #ifndef EEX_SEGGER_SYSTEMVIEW
