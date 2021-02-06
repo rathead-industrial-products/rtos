@@ -663,10 +663,10 @@ STATIC bool _eexSemaMutexTry(const eex_thread_event_t *event) {
     assert(f_pend || f_post);
 
     do {
-        old_cnt.data = sema->count.data;
+        old_cnt.td = sema->count.td;
         if (rtn_val) { *rtn_val = (uint32_t) old_cnt.data; }
-        if (f_pend && (old_cnt.data == 0))              { return (false); } // semaphore/mutex not available
-        if (f_post && (old_cnt.data == sema->max_val))  { break; }
+        if (f_pend && (old_cnt.data == 0))                                          { return (false); }   // semaphore/mutex not available
+        if (f_post && (sema->cb.type == 'SEMA') && (old_cnt.data == sema->max_val)) { return (false); }   // semaphores all taken
         new_cnt = _eexNewTaggedData((uint16_t) (old_cnt.data + (f_post ? 1 : -1)));
         if (rtn_val) { *rtn_val = (uint32_t) new_cnt.data; }
     } while(eexCPUAtomicCAS(&(sema->count.td), old_cnt.td, new_cnt.td));
