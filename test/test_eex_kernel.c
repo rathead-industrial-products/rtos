@@ -311,7 +311,9 @@ void test_thread_timeout(void) {
 static void thread(void * const argument) { }
 void test_create_tasks(void) {
     eex_status_t err;
-    for (int i=0; i<=EEX_CFG_USER_THREADS_MAX; ++i) {
+    err = eexThreadCreate(thread, NULL, 0, NULL);             // cannot create a thread 0
+    TEST_ASSERT_EQUAL(eexStatusThreadCreateErr, err);
+    for (int i=1; i<=EEX_CFG_USER_THREADS_MAX; ++i) {
         err = eexThreadCreate(thread, NULL, i, NULL);
         TEST_ASSERT_EQUAL(eexStatusOK, err);
         if (i) { TEST_ASSERT_TRUE(g_thread_ready_list & (1<<(i-1))); }  // added to ready list when created except for 0
@@ -457,7 +459,7 @@ void test_mutex_try(void) {
 
     TEST_ASSERT_EQUAL('MUTX', ((eex_sema_mutex_cb_t *) mutex)->cb.type);
     _eexEventInit((void *) 0xabcd1234, &rtn_status, &rtn_val, 5, 0, mutex, EEX_EVENT_NO_ACTION);
-    TEST_ASSERTION_SHOULD_ASSERT(_eexSemaMutexTry(event));
+    TEST_ASSERTION_SHOULD_ASSERT(_eexSemaMutexTry(event));                                    // must be pend or post
     TEST_ASSERT_EQUAL(0, ((eex_sema_mutex_cb_t *) mutex)->owner_id);                          // mutex available, no owner
     _eexEventInit((void *) 0xabcd1234, &rtn_status, &rtn_val, 5, 0, mutex, EEX_EVENT_PEND);
     TEST_ASSERT_TRUE(_eexSemaMutexTry(event));          TEST_ASSERT_EQUAL_UINT16(0, rtn_val); // acquire
@@ -540,16 +542,6 @@ void test_event_try(void) {
     tid = _eexEventTry(test_pri-1, event);
     TEST_ASSERT_EQUAL(test_pri, tid);     // post successful, higher priority thread unblocked
 
-    g_all_tests_run = true;
-}
-
-void test_thread0_block(void) {
-    eex_status_t        rtn_status;
-    uint32_t            rtn_val;
-
-    _eexThreadIDSet(0);
-    eexPendSignal(&rtn_status, &rtn_val, 1, 0xffffffff, sig);    // non-zero timeout
-    TEST_ASSERT_EQUAL(eexStatusBlockErr, rtn_status);
     g_all_tests_run = true;
 }
 

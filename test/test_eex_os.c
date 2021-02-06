@@ -80,12 +80,9 @@ void dispatch(bool from_interrupt) {
     tcb->fn_thread(tcb->arg);
 }
 
-static void thread_idle(void * const argument) {
-    eexThreadEntry();
-    while (!eexThreadTimeout()) {
-        ++g_timer_ms;
-        eexDelay(0);    // causes scheduler to run
-    }
+// increment the global timer by 1 ms when there are no threads ready to dispatch
+uint32_t eexIdleHook(int32_t sleep_for_ms)  {
+    return (1);
 }
 
 static bool g_f_thread;
@@ -130,7 +127,7 @@ static void thread_mutex_H(void * const argument) {
     for (;;) {
         eexPendSignal(&rtn_status, &rtn_val, eexWaitForever, 1<<MUTEX_TEST_THREAD_PRI_H, sig_wake_up);
         TEST_ASSERT_EQUAL(eexStatusOK, rtn_status);
-        TEST_ASSERT_EQUAL(1, rtn_val);
+        TEST_ASSERT_EQUAL(1<<MUTEX_TEST_THREAD_PRI_H, rtn_val);
         eexPostSignal(&rtn_status, 1<<MUTEX_TEST_THREAD_PRI_M, sig_wake_up);
         TEST_ASSERT_EQUAL(eexStatusOK, rtn_status);
         eexPend(&rtn_status, NULL, eexWaitForever, mutex);
@@ -148,7 +145,7 @@ static void thread_mutex_M(void * const argument) {
     for (;;) {
         eexPendSignal(&rtn_status, &rtn_val, eexWaitForever, 1<<MUTEX_TEST_THREAD_PRI_M, sig_wake_up);
         TEST_ASSERT_EQUAL(eexStatusOK, rtn_status);
-        TEST_ASSERT_EQUAL(1, rtn_val);
+        TEST_ASSERT_EQUAL(1<<MUTEX_TEST_THREAD_PRI_M, rtn_val);
         f_g_mutex_test_thread_pri_m_done = true;
         eexDelay(eexWaitForever);
     }
@@ -190,14 +187,15 @@ void tearDown(void) { }
 /*******************************************************************************
  *    TESTS
  ******************************************************************************/
+
 void test_delay(void) {
-    (void) eexThreadCreate(thread_idle, NULL, 0, NULL);
     (void) eexThreadCreate(thread_delay, (void *) 5, 1, NULL);
     g_timer_ms = 0;
-    while (!g_f_thread && (g_timer_ms < 10)) {
+    while (!g_f_thread) {
         dispatch(false);
     }
     TEST_ASSERT_EQUAL(5, g_timer_ms);
+
 }
 
 void test_semaphore_all_threads(void) {
@@ -206,42 +204,41 @@ void test_semaphore_all_threads(void) {
      * priority order, blocking again on a second semaphore.
      */
 
-    (void) eexThreadCreate(thread_semaphore_post, 0, 0, NULL);  // thread zero releases all the other threads
+    (void) eexThreadCreate(thread_semaphore_post, 0, 1, NULL);  // thread 1 releases all the other threads
 
-    // create all possible working threads, then run and block on the sem1
+    // create all possible working threads 32-2, then run and block on the semaphore sem1
     for (int i=1; i<=EEX_CFG_USER_THREADS_MAX; ++i) { (void) eexThreadCreate(thread_semaphore_pend, (void *) i, i, NULL); }
     TEST_ASSERT_EQUAL_HEX(0xffffffff, g_thread_ready_list);                 // all threads ready on creation
     TEST_ASSERT_EQUAL(0x00000000, g_thread_waiting_list);                   // nothing pended yet
     dispatch(false);                                                        // run thread 32, block
     dispatch(false);  TEST_ASSERT_EQUAL(0x80000000, g_thread_waiting_list); // put thread 32 on waiting list, schedule and run task 31, block
-    dispatch(false);  TEST_ASSERT_EQUAL(0xc0000000, g_thread_waiting_list);
-    for (int i=29; i>0; --i) { dispatch(false); }                           // run and block threads 29-1, 1 not yet on waiting list
-    TEST_ASSERT_EQUAL(0xfffffffe, g_thread_waiting_list);
-    TEST_ASSERT_EQUAL(0xffffffff, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // all threads pending on sem1
-    dispatch(false);    // thread 1 waiting, thread 0 dispatched to start posting and releasing the blocked threads
-    TEST_ASSERT_EQUAL(0xffffffff, g_thread_waiting_list); // all threads now waiting
+    dispatch(false);  TEST_ASSERT_EQUAL(0xc0000000, g_thread_waiting_list); // threads 32,31 on waiting list, schedule and run task 30, block
+    for (int i=29; i>=2; --i) { dispatch(false); }                           // run and block threads 29-2, 2 not yet on waiting list
+    TEST_ASSERT_EQUAL(0xfffffffc, g_thread_waiting_list);
+    TEST_ASSERT_EQUAL(0xfffffffe, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // all threads except 1 pending on sem1
+    dispatch(false);    // thread 2 waiting, thread 1 dispatched to start posting and releasing the blocked threads
+    TEST_ASSERT_EQUAL(0xfffffffe, g_thread_waiting_list); // all threads 32-2 now waiting
 
     dispatch(false);    // thread 32 has taken sem1 and run, is now blocked on sem2
-    TEST_ASSERT_EQUAL(0x7fffffff, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // thread 32 no longer pending on sem1
+    TEST_ASSERT_EQUAL(0x7ffffffe, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // thread 32 no longer pending on sem1
     TEST_ASSERT_EQUAL(0x80000000, ((eex_sema_mutex_cb_t *) sem2)->cb.pend);  // thread 32 pending now on sem2
-    dispatch(false);    // run thread 0 to post to sem1
+    dispatch(false);    // run thread 1 to post to sem1
     dispatch(false);    // thread 31 has taken sem1 and run, is now blocked on sem2
-    TEST_ASSERT_EQUAL(0x3fffffff, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // thread 31 no longer pending on sem1
+    TEST_ASSERT_EQUAL(0x3ffffffe, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // thread 31 no longer pending on sem1
     TEST_ASSERT_EQUAL(0xc0000000, ((eex_sema_mutex_cb_t *) sem2)->cb.pend);  // thread 31 pending now on sem2
-    for (int i=30; i>1; --i) { dispatch(false); dispatch(false); }
-    TEST_ASSERT_EQUAL(0x00000001, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // only thread 1 now pending on sem1
-    TEST_ASSERT_EQUAL(0xfffffffe, ((eex_sema_mutex_cb_t *) sem2)->cb.pend);  // threads 2-32 pending now on sem2
-    dispatch(false);    // run thread 0 to post to sem1 one last time
-    dispatch(false);    // run thread 1
+    for (int i=30; i>2; --i) { dispatch(false); dispatch(false); }
+    TEST_ASSERT_EQUAL(0x00000002, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // only thread 2 now pending on sem1
+    TEST_ASSERT_EQUAL(0xfffffffc, ((eex_sema_mutex_cb_t *) sem2)->cb.pend);  // threads 3-32 pending now on sem2
+    dispatch(false);    // run thread 1 to post to sem1 one last time, readying thread 2
+    dispatch(false);    // run thread 2
     TEST_ASSERT_EQUAL(0x00000000, ((eex_sema_mutex_cb_t *) sem1)->cb.pend);  // no threads pending on sem1
-    TEST_ASSERT_EQUAL(0xffffffff, ((eex_sema_mutex_cb_t *) sem2)->cb.pend);  // all threads pending now on sem2
+    TEST_ASSERT_EQUAL(0xfffffffe, ((eex_sema_mutex_cb_t *) sem2)->cb.pend);  // all threads 32-2pending now on sem2
 }
 
 void test_mutex_priority_inversion(void) {
     (void) eexThreadCreate(thread_mutex_H, NULL, MUTEX_TEST_THREAD_PRI_H, NULL);
     (void) eexThreadCreate(thread_mutex_M, NULL, MUTEX_TEST_THREAD_PRI_M, NULL);
     (void) eexThreadCreate(thread_mutex_L, NULL, MUTEX_TEST_THREAD_PRI_L, NULL);
-    (void) eexThreadCreate(thread_idle, NULL, 0, NULL);
 
     dispatch(false);                                                              // dispatch high priority thread H
     TEST_ASSERT_EQUAL(MUTEX_TEST_THREAD_PRI_H, eexThreadID());                    // H running
@@ -287,16 +284,7 @@ void test_mutex_priority_inversion(void) {
     TEST_ASSERT_TRUE(g_thread_waiting_list & (1 << (MUTEX_TEST_THREAD_PRI_M-1))); // M waiting
     TEST_ASSERT_TRUE(f_g_mutex_test_thread_pri_m_done);                           // M done
                                                                                   // L sets f_g_mutex_test_thread_pri_l_done
-
-    dispatch(false);                                                              // L blocks on delay, idle thread dispatches
-    TEST_ASSERT_EQUAL(0, eexThreadID());                                          // idle thread running
-    TEST_ASSERT_TRUE(g_thread_waiting_list & (1 << (MUTEX_TEST_THREAD_PRI_L-1))); // L waiting
-    TEST_ASSERT_TRUE(f_g_mutex_test_thread_pri_l_done);                           // L done
 }
-
-
-
-
 
 
 
