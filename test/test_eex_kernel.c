@@ -8,9 +8,6 @@
 
 //-- module being tested
 #include "eex_os.h"
-#include "eex_kernel.h"
-
-// platform specific functions defined in eex_os.h mocked up
 #include "eex_platform_mock.c"
 
 #pragma GCC diagnostic ignored "-Wmultichar"  // to allow e.g. 'MUTX'
