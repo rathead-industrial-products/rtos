@@ -1,21 +1,23 @@
 
-Introduction
-============
+This is the repository for the eex RTOS.
 
-First, why another RTOS?  
-Every RTOS has different objectives which result in a set of compromises.  
-Here are the pain points this RTOS addresses:  
-* Complex configuration
-* Requiring a dedicated stack for each thread
-* Determining (guessing?) the correct stack size that doesn't waste space yet doesn't overflow
-* Trying to understand the hundreds of undecipherable files required to build
+eex -- embedded executive
 
-This RTOS requires almost no configuration, threads do not have individual stacks, and it builds using three files.
+eex is targeted at Arm CortexM embedded systems. Small-ish and resource constrained.
 
-Of course there are compromises...  
-* Must be built using GCC (requires local labels and computed goto)
-* Threads can only block in the main routine, not in functions (subroutines)
-* Priority inversion cannot be addressed by hoisting the priority of a preempted thread, and is currently unaddressed
+To use eex you should be familiar with basic RTOS concepts. They are all fundamentally
+the same with different design compromises.
+
+What is different about eex?  
+* Stackless - There is only one system stack shared by all threads and interrupts.
+* Non-stop - On the M3/M4 interrupts are never disabled.
+* Easy configuration - Set some macros to tailor eex to your needs.
+* Easy to manage and understand - eex builds using only three (3) files.
+
+What design compromises are made? 
+* Must be built using GCC (requires local labels and computed goto).
+* Threads can only block in the main routine, not in functions (subroutines).
+* Priority inversion has a more complex solution than just hoisting the priority of the low-priority thread.
 
 
 ### Overview ###
@@ -32,39 +34,23 @@ The M0 doesn't have a CAS instruction so interrupts are disabled for a couple of
 instructions during a simulated CAS operation.
 
 Kernel structures such as queues and semiphores are implemented using a
-lockless protocol. More complex operations such as scheduling that would
-normally be done in a locked critical section are performed in the PendSV
+lockless protocol. Task scheduling that would
+normally be done in a locked critical section is performed in the PendSV
 exception handler. PendSV is set to be the lowest priority exception and so although it
 can be interrupted, by design it always runs to completion and so does not
 have to be locked.
 
 
-### Compiler Restrictions ###
-
-The implementation of eex relies on specific compiler behavior.
-
-* C99             [-std=gnu99]
-* Local labels
-* Computed goto
-
-
-### Processor Restrictions ###
+### Platform Targets ###
 
 eex is targeted at ARM Cortex-M processors. It has been specifically designed
 to work on CM0, CM0+, CM3, and CM4 processors. It has been tested on CM0+ and
 CM4 processors. It may work on other ARM variants.
 
-Porting to other (non-ARM) architectures would require finding a substitue for
+Porting to other (non-ARM) architectures would require finding a substitute for
 pendSV and rewriting the Compare-And-Swap operation for the specific processor
 architecture.
 
-
-### Processor Configuration ###
-
-Cortex-M processors execute in one of two modes, Thread or Handler; one of
-two privilege levels, Privileged or Unprivileged; and use one of two stacks,
-Main or Process. eex always executes in Privileged mode using the Main stack. 
-Threads execute in thread mode, and interrupts (including the scheduler)
-operate in handler mode.
+eex will also build and run on a POSIX console.
 
 
