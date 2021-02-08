@@ -90,7 +90,7 @@ Called when there are no ready threads to dispatch.
 Semaphores, Mutexes, and memory objects (queues, etc.) have a common interface to fetch (Pend) and write (Post).  
 
     void  eexPend(eex_status_t *p_rtn_status, uint32_t *p_rtn_val, uint32_t timeout, void *kobj);
-    void  eexPost(eex_status_t *p_rtn_status, uint32_t timeout, uint32_t val,     void *kobj);
+    void  eexPost(eex_status_t *p_rtn_status, uint32_t val,        uint32_t timeout, void *kobj);
         p_rtn_status    pointer to the return status code (Function Return Codes)
         p_rtn_val       pointer to the value returned by the Pend operation
         timeout         timeout value in ms (or one of the Standardized Timeout Values)
