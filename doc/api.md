@@ -36,7 +36,7 @@ eex RTOS API
     typedef void (*eex_thread_fn_t) (void *argument);
 
 ## Thread Entry  
-** Function-like macro **  
+**Function-like macro**  
 Must be the first statment in every thread.
   
     void eexThreadEntry(void);
@@ -119,7 +119,7 @@ Block for a period of time.
         kernel_ms   block until kernel time equals eexKernelTime().
 
 ## Synchronization Object Allocation  
-** Macro **  
+**Macro**  
 Static allocators for synchronization objects.  
 'name' must not be in quotes (i.e. `EEX_MUTEX_NEW(myMutex)`, not `EEX_MUTEX_NEW("myMutex")`)
   
