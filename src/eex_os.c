@@ -532,10 +532,10 @@ STATIC void _eexEventInit(void *func_yield_pt, eex_status_t *p_rtn_status, uint3
     if (action == EEX_EVENT_POST) { _eexThreadListAdd(&(p_kobj->post), tid); }
 
     // timeout handling
-    // Normal timeout - add the current time to timeout_ms to get the clock time for the timout
+    // Normal timeout - add the current time to timeout to get the clock time for the timout
     //                  don't let it expire at clock time zero (rollover), that's the flag for no timeout
-    // No timeout (0) - leave the timeout_ms value unchanged - interrupt timeout is always 0
-    // Wait forever   - leave the timeout_ms value unchanged
+    // No timeout (0) - leave the timeout value unchanged - interrupt timeout is always 0
+    // Wait forever   - leave the timeout value unchanged
     if ((!timeout) || (timeout == (unsigned) eexWaitForever)) {
         event->timeout = timeout;
     }

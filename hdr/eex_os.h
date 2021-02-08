@@ -156,7 +156,7 @@ uint32_t      eexIdleHook(int32_t sleep_for_ms);
 void eexThreadEntry(void);                // must be the first statment in every thread.
 
 void  eexPend(eex_status_t *p_rtn_status, uint32_t *p_rtn_val, uint32_t timeout, void *kobj);
-void  eexPost(eex_status_t *p_rtn_status, uint32_t timeout_ms, uint32_t val,     void *kobj);
+void  eexPost(eex_status_t *p_rtn_status, uint32_t val,        uint32_t timeout, void *kobj);
 
 void  eexPendSignal(eex_status_t *p_rtn_status, uint32_t *p_rtn_val, uint32_t timeout, uint32_t signal_mask, void *kobj);
 void  eexPostSignal(eex_status_t *p_rtn_status, uint32_t  signal,    void *kobj);
@@ -270,10 +270,10 @@ uint32_t          eexCPUCLZ(uint32_t x);
 #define eexThreadEntry()                                                      EEX_THREAD_ENTRY()
 
 #define eexPend(p_rtn_status, p_rtn_val, timeout, p_kobj)                     EEX_PEND_POST(p_rtn_status, p_rtn_val, timeout, 0,   p_kobj, EEX_EVENT_PEND)
-#define eexPost(p_rtn_status, timeout, val, p_kobj)                           EEX_PEND_POST(p_rtn_status, 0,         timeout, val, p_kobj, EEX_EVENT_POST)
+#define eexPost(p_rtn_status, val,       timeout, p_kobj)                     EEX_PEND_POST(p_rtn_status, 0,         timeout, val, p_kobj, EEX_EVENT_POST)
 
 #define eexPendSignal(p_rtn_status, p_rtn_val, timeout, signal_mask, p_kobj)  EEX_PEND_POST(p_rtn_status, p_rtn_val, timeout, signal_mask, p_kobj, EEX_EVENT_PEND)
-#define eexPostSignal(p_rtn_status, signal, p_kobj)                           eexPost(p_rtn_status, 0, signal, p_kobj)
+#define eexPostSignal(p_rtn_status, signal, p_kobj)                           eexPost(p_rtn_status, signal, 0, p_kobj)
 
 #define eexDelay(delay_ms)                                                    eexPend(0, 0, (delay_ms), (&delay_kobj))
 #define eexDelayUntil(kernel_ms)                                              eexDelay((kernel_ms) - eexKernelTime(NULL))
@@ -355,7 +355,7 @@ static void * const name = (void *) &name##_storage
 #include "SEGGER_SYSVIEW.h"
 void eexProfile(bool enter);
 void eexProfileAPICreateThread(eex_thread_id_t tid);
-void eexProfilePendPost(eex_thread_id_t tid, uint32_t timeout_ms, uint32_t *p_val, eex_kobj_cb_t *p_kobj, eex_event_action_t pp);
+void eexProfilePendPost(eex_thread_id_t tid, uint32_t timeout, uint32_t *p_val, eex_kobj_cb_t *p_kobj, eex_event_action_t pp);
 
 #define EEX_PROFILE_ENTER                                     eexProfile((bool) true)
 #define EEX_PROFILE_EXIT                                      eexProfile((bool) false)
