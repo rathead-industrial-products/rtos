@@ -2,7 +2,7 @@
 
     eex_os.h - Real time executive API.
 
-    COPYRIGHT NOTICE: (c) 2018 DDPA LLC
+    COPYRIGHT NOTICE: (c) ee-quipment.com
     All Rights Reserved
 
  ******************************************************************************/
@@ -17,6 +17,12 @@
 extern "C" {
 #endif
 
+
+#define EEX_MAJOR_VERSION           0
+#define EEX_MINOR_VERSION           0
+#define EEX_PATCH_VERSION           0
+
+
 /*******************************************************************************
  *
  *  eex Configuration Parameters
@@ -27,12 +33,7 @@ extern "C" {
  *
  */
 
-
-/*
- *  Begin User Configurable Section
- */
-
-//#include "eex_user_config.h"      /* for example, put your macros in this file */
+//#include "eex_user.h"      /* for example, put your macros in this file */
 
 /* Segger Systemview Support - 1 to enable, 0 to disable */
 #ifndef EEX_SEGGER_SYSTEMVIEW
@@ -61,26 +62,8 @@ extern "C" {
 #define EEX_CFG_CPU_FREQ                    48000000    // 48 MHz
 #endif
 
-
-/*
- *  End User Configurable Section
- */
-
-
-// Interrupt priority levels. The lowest numbers are the highest priority.
-#define EEX_CFG_INT_PRI_PENDSV              255     // lowest possible, reserved for pendSV, aliases to 3 in M0 and 7 in M3/M4
-#define EEX_CFG_INT_PRI_LOWEST              254     // lowest available, aliases to 2 in M0 and 6 in M3/M4
-#define EEX_CFG_INT_PRI_HIGHEST             EEX_CFG_INT_PRI_0
-#define EEX_CFG_INT_PRI_0                   0
-#define EEX_CFG_INT_PRI_1                   1
-#define EEX_CFG_INT_PRI_2                   2
-#define EEX_CFG_INT_PRI_3                   3       // reserved for pendSV in M0
-#define EEX_CFG_INT_PRI_4                   4       // unavailable in M0
-#define EEX_CFG_INT_PRI_5                   5       // unavailable in M0
-#define EEX_CFG_INT_PRI_6                   6       // unavailable in M0
-#define EEX_CFG_INT_PRI_7                   7       // reserved for pendSV in M3/M4
-
 /*****************************************************************************/
+
 
 /*******************************************************************************
  *
@@ -98,6 +81,16 @@ extern "C" {
 
 
 
+
+
+/*******************************************************************************
+ *
+ *  eex API
+ *
+ *  This section is the user interface to the RTOS. Everything below this
+ *  section is implementation is not intended to be accessed by the user.
+ *
+ */
 
 // Standardized timeout values
 typedef enum  {
@@ -159,7 +152,7 @@ uint32_t      eexThreadID(void);
 uint32_t      eexIdleHook(int32_t sleep_for_ms);
 
 
-// Function-like macros
+// Function-like macros. These are redefined as macros below.
 void eexThreadEntry(void);                // must be the first statment in every thread.
 
 void  eexPend(eex_status_t *p_rtn_status, uint32_t *p_rtn_val, uint32_t timeout, void *kobj);
@@ -171,8 +164,14 @@ void  eexPostSignal(eex_status_t *p_rtn_status, uint32_t  signal,    void *kobj)
 void  eexDelay(uint32_t delay_ms);        // max delay is eexWaitMax
 void  eexDelayUntil(uint32_t kernel_ms);  // max kernel_ms is eexWaitMax from current time. rollover is allowed.
 
-void  eexSemaphoreNew(char *name);        // do not quote name, e.g. eexSemaphoreNew(my_semaphore)
-void  eexMutexNew(char *name);
+
+// Static allocators for synchronization primitives. More completely defined in implementation section below.
+// name must not be in quotes. i.e. EEX_MUTEX_NEW(myMutex) not EEX_MUTEX_NEW("myMutex")
+#define EEX_SEMAPHORE_NEW(name, maxval, ival)
+#define EEX_MUTEX_NEW(name)
+#define EEX_SIGNAL_NEW(name)
+
+/*****************************************************************************/
 
 
 /*******************************************************************************
@@ -253,15 +252,13 @@ typedef struct eex_thread_cb_t {
 typedef enum { EEX_THREAD_READY, EEX_THREAD_WAITING, EEX_THREAD_INTERRUPTED } eex_thread_list_selector_t;
 
 
+// Function prototypes. These are implemented as functions, not macros
 uint32_t          eexInInterrupt();         // returns exception number if in handler mode, or 0 if in thread mode
-
 eex_thread_cb_t * eexScheduler(bool from_interrupt);
 void              eexSchedulerPend(void);
-
 bool              eexPendPost(void *func_yield_pt, eex_status_t *p_rtn_status, uint32_t *p_rtn_val, uint32_t timeout, uint32_t val, eex_kobj_cb_t *p_kobj, eex_event_action_t action);
 eex_thread_id_t   eexThreadTimeout(void);   // Returns the thread ID of the highest priority waiting task to time out
 eex_thread_cb_t * eexThreadTCB(eex_thread_id_t tid);
-
 uint32_t          eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store);
 uint32_t          eexCPUCLZ(uint32_t x);
 
@@ -281,9 +278,7 @@ uint32_t          eexCPUCLZ(uint32_t x);
 #define eexDelay(delay_ms)                                                    eexPend(0, 0, (delay_ms), (&delay_kobj))
 #define eexDelayUntil(kernel_ms)                                              eexDelay((kernel_ms) - eexKernelTime(NULL))
 
-#define eexSemaphoreNew(name, maxval, ival)                                   EEX_SEMAPHORE_NEW(name, maxval, ival)
-#define eexMutexNew(name)                                                     EEX_MUTEX_NEW(name)
-#define eexSignalNew(name)                                                    EEX_SIGNAL_NEW(name)
+
 
 /*
  * EEX_THREAD_ENTRY()()
@@ -316,20 +311,41 @@ uint32_t          eexCPUCLZ(uint32_t x);
     } while(0)
 
 
-// New storage allocator for a semaphore.
+/*
+ *  Storage allocators for synchronization primitives.
+ *
+ *  Undefined first to undo declaration in user API above.
+ *
+ */
+
+#undef  EEX_SEMAPHORE_NEW
 #define EEX_SEMAPHORE_NEW(name, maxval, ival)                                                   \
 static eex_sema_mutex_cb_t name##_storage = { { 'SEMA', 0, 0 }, { 0, ival }, maxval, 0};        \
 static void * const name = (void *) &name##_storage
 
-// New storage allocator for a mutex.
+#undef  EEX_MUTEX_NEW
 #define EEX_MUTEX_NEW(name)                                                                     \
 static eex_sema_mutex_cb_t name##_storage = { { 'MUTX', 0, 0 }, { 0, 1 }, 1, 0};                \
 static void * const name = (void *) &name##_storage
 
-// New storage allocator for a signal.
+#undef  EEX_SIGNAL_NEW
 #define EEX_SIGNAL_NEW(name)                                                                     \
 static eex_signal_cb_t name##_storage = { { 'SIGL', 0, 0 }, 0};                                  \
 static void * const name = (void *) &name##_storage
+
+
+// Interrupt priority levels. The lowest numbers are the highest priority.
+#define EEX_CFG_INT_PRI_PENDSV              255     // lowest possible, reserved for pendSV, aliases to 3 in M0 and 7 in M3/M4
+#define EEX_CFG_INT_PRI_LOWEST              254     // lowest available, aliases to 2 in M0 and 6 in M3/M4
+#define EEX_CFG_INT_PRI_HIGHEST             EEX_CFG_INT_PRI_0
+#define EEX_CFG_INT_PRI_0                   0
+#define EEX_CFG_INT_PRI_1                   1
+#define EEX_CFG_INT_PRI_2                   2
+#define EEX_CFG_INT_PRI_3                   3       // reserved for pendSV in M0
+#define EEX_CFG_INT_PRI_4                   4       // unavailable in M0
+#define EEX_CFG_INT_PRI_5                   5       // unavailable in M0
+#define EEX_CFG_INT_PRI_6                   6       // unavailable in M0
+#define EEX_CFG_INT_PRI_7                   7       // reserved for pendSV in M3/M4
 
 
 // Profiler
