@@ -42,7 +42,7 @@ extern "C" {
 
 /* RTOS Configuration */
 #ifndef EEX_CFG_THREADS_MAX
-#define EEX_CFG_THREADS_MAX                32       // max 32, min 0 (still allows thread 0)
+#define EEX_CFG_THREADS_MAX                32       // max 32, min 0 (0 will continuously call eexIdleHook())
 #endif
 
 #ifndef EEX_CFG_TIMER_THREAD_PRIORITY
