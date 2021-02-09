@@ -1,5 +1,5 @@
 
-Quick Reference Guide {#mainpage}
+Quick Reference Guide
 ============
 
 
@@ -24,6 +24,15 @@ The following c code (c++ friendly) must be compiled and linked in:
 * eex_kernel.c - kernel code  
 * eex_arm.c - processor specific code
 
+### Configuration ###
+
+Set the configuration parameters at the top of eex_os.h. Alternatively put your
+configuration into a separate file (e.g. eex_user.h) and #include it from 
+eex_os.h. 
+
+Point the Systick interrupt vector to SysTick_Handler() in eex_platform.c. Systick
+will be configured when eexKernelStart() is called.
+
 ### Idle Hook ###
 
 The eexIdleHook() function is called when there are no threads ready to dispatch. This
@@ -43,7 +52,7 @@ uint32_t eexIdleHook(uint32_t sleep_for_ms) {
 ### Dos and Don'ts ###
 
 DO:  
-* Assign each thread a unique priority from 1 (lowest) to 32 (highest) inclusive.  
+* Assign each thread a unique priority from 1 (lowest) to EEX_CFG_THREADS_MAX (highest, up to 32) inclusive.  
 * Make all local thread variables static or create a thread-local-storage struct to hold thread variables. Functions may use auto variables.  
 * To profile interrupt handlers using Segger Sysview call EEX_PROFILE_ENTER and EEX_PROFILE_EXIT
 on the handler entry and exit. Threads are automatically profiled.
