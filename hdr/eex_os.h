@@ -41,16 +41,12 @@ extern "C" {
 #endif
 
 /* RTOS Configuration */
-#ifndef EEX_CFG_USER_THREADS_MAX
-#define EEX_CFG_USER_THREADS_MAX           32       // max 32, min 0 (still allows thread 0)
+#ifndef EEX_CFG_THREADS_MAX
+#define EEX_CFG_THREADS_MAX                32       // max 32, min 0 (still allows thread 0)
 #endif
 
-#ifndef EEX_USR_CFG_TIMER_THREADS_MAX
-#define EEX_USR_CFG_TIMER_THREADS_MAX       0       // Software timer configuration.
-#endif
-
-#ifndef EEX_USR_CFG_TIMER_THREAD_PRIORITY
-#define EEX_USR_CFG_TIMER_THREAD_PRIORITY   0
+#ifndef EEX_CFG_TIMER_THREAD_PRIORITY
+#define EEX_CFG_TIMER_THREAD_PRIORITY       0       // Software timer(s) priority
 #endif
 
 /* System Configuration */

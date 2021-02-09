@@ -95,6 +95,69 @@ uint32_t eexKernelTime(uint32_t *us) {
 
 #endif  /* __CONSOLE */
 
+
+#if (__CORTEX_M == 0)
+
+uint32_t eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
+    uint32_t rslt = 1;
+    uint32_t primask;
+
+    primask = __get_PRIMASK();
+    __disable_irq();
+    if (*addr == expected) {
+      *addr = store;
+      rslt  = 0;
+    }
+    __set_PRIMASK(primask);
+    return (rslt);
+}
+
+uint32_t eexCPUCLZ(uint32_t x) {
+    static uint8_t const clz_lkup[] = {
+        32U, 31U, 30U, 30U, 29U, 29U, 29U, 29U,
+        28U, 28U, 28U, 28U, 28U, 28U, 28U, 28U
+    };
+    uint32_t n;
+
+    if (x >= (1U << 16)) {
+        if (x >= (1U << 24)) {
+            if (x >= (1 << 28)) { n = 28U; }
+            else { n = 24U; }
+        }
+        else {
+            if (x >= (1U << 20)) { n = 20U; }
+            else { n = 16U; }
+        }
+    }
+    else {
+        if (x >= (1U << 8)) {
+            if (x >= (1U << 12)) { n = 12U; }
+            else { n = 8U; }
+        }
+        else {
+            if (x >= (1U << 4)) { n = 4U; }
+            else { n = 0U; }
+        }
+    }
+    return ((uint32_t) clz_lkup[x >> n] - n);
+}
+
+#endif    /* (__CORTEX_M == 0) */
+
+#if ((__CORTEX_M == 3) || (__CORTEX_M == 4))
+uint32_t eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
+
+    if (__LDREXW(addr) != expected) {
+        return 1;
+    }
+    return (__STREXW(store, addr));
+}
+
+uint32_t eexCPUCLZ(uint32_t x) {
+  return ((uint32_t) __CLZ(x));
+}
+#endif  /* ((__CORTEX_M == 3) || (__CORTEX_M == 4)) */
+
 #if ((__CORTEX_M == 0) || (__CORTEX_M == 3) || (__CORTEX_M == 4))
 
 // triggers pendSV exception and never returns
@@ -159,69 +222,6 @@ void SysTick_Handler(void) {
     EEX_PROFILE_EXIT;
 }
 
-#endif    /* ((__CORTEX_M == 0) || (__CORTEX_M == 3) || (__CORTEX_M == 4)) */
-
-#if (__CORTEX_M == 0)
-
-uint32_t eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
-    uint32_t rslt = 1;
-    uint32_t primask;
-
-    primask = __get_PRIMASK();
-    __disable_irq();
-    if (*addr == expected) {
-      *addr = store;
-      rslt  = 0;
-    }
-    __set_PRIMASK(primask);
-    return (rslt);
-}
-
-uint32_t eexCPUCLZ(uint32_t x) {
-    static uint8_t const clz_lkup[] = {
-        32U, 31U, 30U, 30U, 29U, 29U, 29U, 29U,
-        28U, 28U, 28U, 28U, 28U, 28U, 28U, 28U
-    };
-    uint32_t n;
-
-    if (x >= (1U << 16)) {
-        if (x >= (1U << 24)) {
-            if (x >= (1 << 28)) { n = 28U; }
-            else { n = 24U; }
-        }
-        else {
-            if (x >= (1U << 20)) { n = 20U; }
-            else { n = 16U; }
-        }
-    }
-    else {
-        if (x >= (1U << 8)) {
-            if (x >= (1U << 12)) { n = 12U; }
-            else { n = 8U; }
-        }
-        else {
-            if (x >= (1U << 4)) { n = 4U; }
-            else { n = 0U; }
-        }
-    }
-    return ((uint32_t) clz_lkup[x >> n] - n);
-}
-
-#endif    /* (__CORTEX_M == 0) */
-
-#if ((__CORTEX_M == 3) || (__CORTEX_M == 4))
-uint32_t eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
-
-    if (__LDREXW(addr) != expected) {
-        return 1;
-    }
-    return (__STREXW(store, addr));
-}
-
-uint32_t eexCPUCLZ(uint32_t x) {
-  return ((uint32_t) __CLZ(x));
-}
-#endif  /* ((__CORTEX_M == 3) || (__CORTEX_M == 4)) */
 
 /******************************************************************************
 
@@ -354,6 +354,6 @@ void PendSV_Handler(void) {
 }
 
 
-#endif
+#endif    /* ((__CORTEX_M == 0) || (__CORTEX_M == 3) || (__CORTEX_M == 4)) */
 
 
