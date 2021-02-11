@@ -44,6 +44,11 @@ are allowed as long as they are static (which all declarations should be).
 The eexStartThread() macro contains the code that jumps to the location
 after the last call that blocked the thread.
 
+
+### Profiling ###
+
+...
+
 ### Example ###
 
 #### Static Variables ####
@@ -51,10 +56,10 @@ after the last call that blocked the thread.
 ```
 void thread (void * const tls) {       // may be declared static if in same file as eexThreadCreate()
 	static int times = 4;          // static qualifer required, may be initialized
-	
-	< WHAT ABOUT ONE-TIME INITIALIZATION?? >
 
 	eexStartThread();
+	
+	/* One-time initialization, if any, goes here */
 		
 	for (;;) {                     // threads are always endless loops
 		ledFlash(times);       // some function to control external hardware
