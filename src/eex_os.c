@@ -27,7 +27,7 @@
 #define EEX_PENDSV_EXCEPTION_NUMBER   (14)                      // arm defined
 
 // helper macros
-#define EEX_TIMEOUT_EXPIRED(timeout)  ((timeout) && (timeout != (uint32_t) eexWaitForever) && (_eexTimeDiff(timeout, eexKernelTime(NULL)) <= 0))
+#define EEX_TIMEOUT_EXPIRED(timeout)  ((timeout) && (timeout != (uint32_t) eexWaitForever) && (eexTimeDiff(timeout, eexKernelTime(NULL)) <= 0))
 
 /*******************************************************************************
 
@@ -35,7 +35,6 @@
 
  ******************************************************************************/
 STATIC eex_tagged_data_t    _eexNewTaggedData(uint16_t data);
-STATIC int32_t              _eexTimeDiff(uint32_t time, uint32_t ref);
 STATIC bool                 _eexInScheduler(void);
 STATIC void                 _eexBMSet(eex_bm_t * const a, uint32_t const bit);
 STATIC void                 _eexBMClr(eex_bm_t * const a, uint32_t const bit);
@@ -100,7 +99,7 @@ STATIC eex_tagged_data_t  _eexNewTaggedData(uint16_t data) {
 // Return the difference between two unsigned time values.
 // Signed subtraction of two unsigned values will work correctly
 // as long as the difference is < 2^31 (half the total unsigned value).
-STATIC int32_t _eexTimeDiff(uint32_t time, uint32_t ref) {
+int32_t eexTimeDiff(uint32_t time, uint32_t ref) {
     return ((int32_t) (time - ref));
 }
 
