@@ -149,7 +149,7 @@ uint32_t      eexIdleHook(int32_t sleep_for_ms);
 
 
 // Function-like macros. These are redefined as macros below.
-void eexThreadEntry(void);                // must be the first statment in every thread.
+void  eexThreadEntry(void);               // must be the first statment in every thread.
 
 void  eexPend(eex_status_t *p_rtn_status, uint32_t *p_rtn_val, uint32_t timeout, void *kobj);
 void  eexPost(eex_status_t *p_rtn_status, uint32_t val,        uint32_t timeout, void *kobj);
@@ -254,6 +254,7 @@ eex_thread_cb_t * eexScheduler(bool from_interrupt);
 void              eexSchedulerPend(void);
 bool              eexPendPost(void *func_yield_pt, eex_status_t *p_rtn_status, uint32_t *p_rtn_val, uint32_t timeout, uint32_t val, eex_kobj_cb_t *p_kobj, eex_event_action_t action);
 eex_thread_id_t   eexThreadTimeout(void);   // Returns the thread ID of the highest priority waiting task to time out
+int32_t           eexTimeDiff(uint32_t time, uint32_t ref);
 eex_thread_cb_t * eexThreadTCB(eex_thread_id_t tid);
 uint32_t          eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store);
 uint32_t          eexCPUCLZ(uint32_t x);
