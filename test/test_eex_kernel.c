@@ -118,27 +118,27 @@ void test_tagged_data_generator(void) {
 }
 
 // Immune to rollover effects as long as the difference is less than 2^31 (half the total unsigned value)
-int32_t _eexTimeDiff(uint32_t time, uint32_t ref);
+int32_t eexTimeDiff(uint32_t time, uint32_t ref);
 void test_time_diff(void) {
-    TEST_ASSERT_EQUAL_INT32( 0,           _eexTimeDiff(0, 0));    // behavior around zero
-    TEST_ASSERT_EQUAL_INT32( 1,           _eexTimeDiff(1, 0));
-    TEST_ASSERT_EQUAL_INT32(-1,           _eexTimeDiff(0, 1));
+    TEST_ASSERT_EQUAL_INT32( 0,           eexTimeDiff(0, 0));    // behavior around zero
+    TEST_ASSERT_EQUAL_INT32( 1,           eexTimeDiff(1, 0));
+    TEST_ASSERT_EQUAL_INT32(-1,           eexTimeDiff(0, 1));
 
-    TEST_ASSERT_EQUAL_INT32(0xfffe,       _eexTimeDiff(0xffff,      1));
-    TEST_ASSERT_EQUAL_INT32(0xffff,       _eexTimeDiff(0x10000,     1));
-    TEST_ASSERT_EQUAL_INT32(0x10000,      _eexTimeDiff(0x10001,     1));
-    TEST_ASSERT_EQUAL_INT32(2147483646,   _eexTimeDiff(0x7fffffff,  1));
-    TEST_ASSERT_EQUAL_INT32(2147483647,   _eexTimeDiff(0x80000000,  1));
-    TEST_ASSERT_EQUAL_INT32(-2147483648,  _eexTimeDiff(0x80000001,  1));  // sign flip at diff >= 2^31
-    TEST_ASSERT_EQUAL_INT32(-2147483647,  _eexTimeDiff(0x80000002,  1));
+    TEST_ASSERT_EQUAL_INT32(0xfffe,       eexTimeDiff(0xffff,      1));
+    TEST_ASSERT_EQUAL_INT32(0xffff,       eexTimeDiff(0x10000,     1));
+    TEST_ASSERT_EQUAL_INT32(0x10000,      eexTimeDiff(0x10001,     1));
+    TEST_ASSERT_EQUAL_INT32(2147483646,   eexTimeDiff(0x7fffffff,  1));
+    TEST_ASSERT_EQUAL_INT32(2147483647,   eexTimeDiff(0x80000000,  1));
+    TEST_ASSERT_EQUAL_INT32(-2147483648,  eexTimeDiff(0x80000001,  1));  // sign flip at diff >= 2^31
+    TEST_ASSERT_EQUAL_INT32(-2147483647,  eexTimeDiff(0x80000002,  1));
 
-    TEST_ASSERT_EQUAL_INT32(-0xfffe,      _eexTimeDiff(1,      0xffff));
-    TEST_ASSERT_EQUAL_INT32(-0xffff,      _eexTimeDiff(1,     0x10000));
-    TEST_ASSERT_EQUAL_INT32(-0x10000,     _eexTimeDiff(1,     0x10001));
-    TEST_ASSERT_EQUAL_INT32(-2147483646,  _eexTimeDiff(1,  0x7fffffff));
-    TEST_ASSERT_EQUAL_INT32(-2147483647,  _eexTimeDiff(1,  0x80000000));
-    TEST_ASSERT_EQUAL_INT32(-2147483648,  _eexTimeDiff(1,  0x80000001));
-    TEST_ASSERT_EQUAL_INT32(2147483647,   _eexTimeDiff(1,  0x80000002));  // sign flip at diff >= 2^31
+    TEST_ASSERT_EQUAL_INT32(-0xfffe,      eexTimeDiff(1,      0xffff));
+    TEST_ASSERT_EQUAL_INT32(-0xffff,      eexTimeDiff(1,     0x10000));
+    TEST_ASSERT_EQUAL_INT32(-0x10000,     eexTimeDiff(1,     0x10001));
+    TEST_ASSERT_EQUAL_INT32(-2147483646,  eexTimeDiff(1,  0x7fffffff));
+    TEST_ASSERT_EQUAL_INT32(-2147483647,  eexTimeDiff(1,  0x80000000));
+    TEST_ASSERT_EQUAL_INT32(-2147483648,  eexTimeDiff(1,  0x80000001));
+    TEST_ASSERT_EQUAL_INT32(2147483647,   eexTimeDiff(1,  0x80000002));  // sign flip at diff >= 2^31
 
     g_all_tests_run = true;
 }
