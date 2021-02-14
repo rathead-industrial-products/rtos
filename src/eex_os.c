@@ -134,19 +134,25 @@ int32_t _eexThreadTimeoutNext(void) {
     eex_thread_list_t  *waiting_list = _eexThreadListGet(EEX_THREAD_WAITING);
     eex_thread_id_t     tid;
     eex_thread_cb_t    *tcb;
-    uint32_t            timeout;
-    int32_t             next_timeout=INT_MAX;
+    uint32_t            now, ms_remaining;
+    int32_t             ms_until_next_timeout = eexWaitMax;
+    bool                f_timeout_pending = false;
 
+    now = eexKernelTime(NULL);
     for (tid=1; tid<=EEX_CFG_USER_THREADS_MAX; ++tid) {
         if (_eexThreadListContains(waiting_list, tid)) {
             tcb = eexThreadTCB(tid);
-            timeout = tcb->event.timeout;
-            if (timeout < next_timeout) { next_timeout = timeout; }
+            // ignore timeout == 0 (no timeout) and timeout == eexWaitForever
+            if ((tcb->event.timeout) && (tcb->event.timeout != (uint32_t) eexWaitForever)) {
+                ms_remaining = eexTimeDiff(tcb->event.timeout, now);
+                if (ms_remaining < ms_until_next_timeout) { ms_until_next_timeout = ms_remaining; }
+                f_timeout_pending = true;
+            }
         }
     }
-    if (next_timeout == INT_MAX) { next_timeout = 0; }            // no timeouts pending
-    else { next_timeout = next_timeout - eexKernelTime(NULL); }   // ms until next timeout
-    return (next_timeout);
+    if (ms_until_next_timeout == 0)   { ms_until_next_timeout = -1; } // neg value means thread timed out
+    if (!f_timeout_pending)           { ms_until_next_timeout = 0; }  // 0 means no timeouts pending
+    return (ms_until_next_timeout);
 }
 
 eex_thread_id_t eexThreadTimeout(void) {
@@ -531,8 +537,9 @@ STATIC void _eexEventInit(void *func_yield_pt, eex_status_t *p_rtn_status, uint3
     if (action == EEX_EVENT_POST) { _eexThreadListAdd(&(p_kobj->post), tid); }
 
     // timeout handling
-    // Normal timeout - add the current time to timeout to get the clock time for the timout
+    // Normal timeout - add the current time to timeout to get the clock time for the timeout
     //                  don't let it expire at clock time zero (rollover), that's the flag for no timeout
+    //                  also don't let it expire at clock time eexWaitForever
     // No timeout (0) - leave the timeout value unchanged - interrupt timeout is always 0
     // Wait forever   - leave the timeout value unchanged
     if ((!timeout) || (timeout == (unsigned) eexWaitForever)) {
@@ -541,7 +548,8 @@ STATIC void _eexEventInit(void *func_yield_pt, eex_status_t *p_rtn_status, uint3
     else {
         if (timeout > (uint32_t) eexWaitMax) { timeout = (uint32_t) eexWaitMax; } // max allowable timeout delay
         event->timeout = eexKernelTime(NULL) + timeout;                           // convert timeout delay to clock time
-        if (event->timeout == 0) { event->timeout = 1; }                          // don't allow it to expire on 0
+        if (event->timeout == 0)              { event->timeout = 1; }             // don't allow it to expire on 0
+        if (event->timeout == eexWaitForever) { event->timeout = 1; }             // or expire on eexWaitForever
     }
 }
 
