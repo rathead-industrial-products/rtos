@@ -69,8 +69,8 @@ extern "C" {
 #if (defined UNIT_TEST) || (defined _lint)
     #undef  EEX_SEGGER_SYSTEMVIEW
     #define EEX_SEGGER_SYSTEMVIEW           0
-    #undef  EEX_CFG_USER_THREADS_MAX
-    #define EEX_CFG_USER_THREADS_MAX       32
+    #undef  EEX_CFG_THREADS_MAX
+    #define EEX_CFG_THREADS_MAX            32
 #endif
 
 /*****************************************************************************/

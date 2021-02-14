@@ -25,9 +25,6 @@
  *    DEFINITIONS
  ******************************************************************************/
 
-// Set eex_configure.h
-// #define EEX_CFG_USER_THREADS_MAX  32
-
 #define MUTEX_TEST_THREAD_PRI_H   10
 #define MUTEX_TEST_THREAD_PRI_M   7
 #define MUTEX_TEST_THREAD_PRI_L   6
@@ -36,7 +33,7 @@
 /*******************************************************************************
  *    MODULE INTERNAL DATA
  ******************************************************************************/
-extern eex_thread_cb_t    g_thread_tcb[EEX_CFG_USER_THREADS_MAX];
+extern eex_thread_cb_t    g_thread_tcb[EEX_CFG_THREADS_MAX];
 extern eex_thread_list_t  g_thread_ready_list;
 extern eex_thread_list_t  g_thread_waiting_list;
 extern eex_thread_list_t  g_thread_interrupted_list;
@@ -170,7 +167,7 @@ static void thread_mutex_L(void * const argument) {
  *    SETUP, TEARDOWN
  ******************************************************************************/
 void setUp(void) {
-    (void) memset(g_thread_tcb, 0, sizeof(eex_thread_cb_t) * EEX_CFG_USER_THREADS_MAX);
+    (void) memset(g_thread_tcb, 0, sizeof(eex_thread_cb_t) * EEX_CFG_THREADS_MAX);
     g_thread_ready_list       = 0;
     g_thread_waiting_list     = 0;
     g_thread_interrupted_list = 0;
@@ -204,7 +201,7 @@ void test_semaphore_all_threads(void) {
     (void) eexThreadCreate(thread_semaphore_post, 0, 1, NULL);  // thread 1 releases all the other threads
 
     // create all possible working threads 32-2, then run and block on the semaphore sem1
-    for (int i=1; i<=EEX_CFG_USER_THREADS_MAX; ++i) { (void) eexThreadCreate(thread_semaphore_pend, (void *) i, i, NULL); }
+    for (int i=1; i<=EEX_CFG_THREADS_MAX; ++i) { (void) eexThreadCreate(thread_semaphore_pend, (void *) i, i, NULL); }
     TEST_ASSERT_EQUAL_HEX(0xffffffff, g_thread_ready_list);                 // all threads ready on creation
     TEST_ASSERT_EQUAL(0x00000000, g_thread_waiting_list);                   // nothing pended yet
     dispatch(false);                                                        // run thread 32, block

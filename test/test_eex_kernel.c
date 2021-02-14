@@ -29,7 +29,7 @@
 /*******************************************************************************
  *    MODULE INTERNAL DATA
  ******************************************************************************/
-extern volatile eex_thread_cb_t     g_thread_tcb[EEX_CFG_USER_THREADS_MAX+1];
+extern volatile eex_thread_cb_t     g_thread_tcb[EEX_CFG_THREADS_MAX+1];
 extern volatile eex_thread_list_t   g_thread_ready_list;
 extern volatile eex_thread_list_t   g_thread_waiting_list;
 extern volatile eex_thread_list_t   g_thread_interrupted_list;
@@ -62,7 +62,7 @@ bool  g_all_tests_run;
 void *memset(void *str, int c, size_t n);
 void _eexThreadIDSet(eex_thread_id_t tid);
 void setUp(void) {
-    (void) memset((void *) g_thread_tcb, 0, sizeof(eex_thread_cb_t) * (EEX_CFG_USER_THREADS_MAX+1));  // reset thread control blocks
+    (void) memset((void *) g_thread_tcb, 0, sizeof(eex_thread_cb_t) * (EEX_CFG_THREADS_MAX+1));  // reset thread control blocks
     g_thread_ready_list       = EEX_EMPTY_THREAD_LIST;
     g_thread_waiting_list     = EEX_EMPTY_THREAD_LIST;
     g_thread_interrupted_list = EEX_EMPTY_THREAD_LIST;
@@ -145,7 +145,7 @@ void test_time_diff(void) {
 eex_thread_cb_t * eexThreadTCB(eex_thread_id_t tid);
 void test_thread_tcb(void) {
     TEST_ASSERT_EQUAL_PTR(&g_thread_tcb[0], eexThreadTCB(0));
-    TEST_ASSERT_EQUAL_PTR(&g_thread_tcb[EEX_CFG_USER_THREADS_MAX], eexThreadTCB(EEX_CFG_USER_THREADS_MAX));
+    TEST_ASSERT_EQUAL_PTR(&g_thread_tcb[EEX_CFG_THREADS_MAX], eexThreadTCB(EEX_CFG_THREADS_MAX));
 
     g_all_tests_run = true;
 }
@@ -153,9 +153,9 @@ void test_thread_tcb(void) {
 void test_thread_id_get_set(void) {
     _eexThreadIDSet(0);                           TEST_ASSERT_EQUAL_INT32(0, eexThreadID());
     _eexThreadIDSet(7);                           TEST_ASSERT_EQUAL_INT32(7, eexThreadID());
-    _eexThreadIDSet(EEX_CFG_USER_THREADS_MAX-1);  TEST_ASSERT_EQUAL_INT32(EEX_CFG_USER_THREADS_MAX-1, eexThreadID());
-    _eexThreadIDSet(EEX_CFG_USER_THREADS_MAX);    TEST_ASSERT_EQUAL_INT32(EEX_CFG_USER_THREADS_MAX, eexThreadID());
-    TEST_ASSERTION_SHOULD_ASSERT(_eexThreadIDSet(EEX_CFG_USER_THREADS_MAX+1));    // will force an assertion
+    _eexThreadIDSet(EEX_CFG_THREADS_MAX-1);       TEST_ASSERT_EQUAL_INT32(EEX_CFG_THREADS_MAX-1, eexThreadID());
+    _eexThreadIDSet(EEX_CFG_THREADS_MAX);         TEST_ASSERT_EQUAL_INT32(EEX_CFG_THREADS_MAX, eexThreadID());
+    TEST_ASSERTION_SHOULD_ASSERT(_eexThreadIDSet(EEX_CFG_THREADS_MAX+1));    // will force an assertion
     TEST_ASSERTION_SHOULD_ASSERT(_eexThreadIDSet(-1));                            // will force an assertion
 
     g_all_tests_run = true;
@@ -289,9 +289,9 @@ void test_thread_list_hpt(void) {
 
 int32_t                     _eexThreadTimeoutNext(void);
 void test_thread_timeout_next(void) {
-    eex_thread_id_t     test_pri_H = EEX_CFG_USER_THREADS_MAX;
-    eex_thread_id_t     test_pri_M = EEX_CFG_USER_THREADS_MAX-1;
-    eex_thread_id_t     test_pri_L = EEX_CFG_USER_THREADS_MAX-2;
+    eex_thread_id_t     test_pri_H = EEX_CFG_THREADS_MAX;
+    eex_thread_id_t     test_pri_M = EEX_CFG_THREADS_MAX-1;
+    eex_thread_id_t     test_pri_L = EEX_CFG_THREADS_MAX-2;
 
     // Only threads on the waiting list are searched for timeouts
     _eexThreadListAdd(&g_thread_waiting_list, test_pri_H);
@@ -392,7 +392,7 @@ void test_thread_timeout_next(void) {
 
 
 void test_thread_timeout(void) {
-    eex_thread_id_t     test_pri = EEX_CFG_USER_THREADS_MAX;
+    eex_thread_id_t     test_pri = EEX_CFG_THREADS_MAX;
 
     _eexThreadIDSet(test_pri);
     g_timer_ms = 10;
@@ -413,14 +413,14 @@ void test_create_tasks(void) {
     eex_status_t err;
     err = eexThreadCreate(thread, NULL, 0, NULL);             // cannot create a thread 0
     TEST_ASSERT_EQUAL(eexStatusThreadCreateErr, err);
-    for (int i=1; i<=EEX_CFG_USER_THREADS_MAX; ++i) {
+    for (int i=1; i<=EEX_CFG_THREADS_MAX; ++i) {
         err = eexThreadCreate(thread, NULL, i, NULL);
         TEST_ASSERT_EQUAL(eexStatusOK, err);
         if (i) { TEST_ASSERT_TRUE(g_thread_ready_list & (1<<(i-1))); }  // added to ready list when created except for 0
     }
     err = eexThreadCreate(thread, NULL, 1, NULL);
     TEST_ASSERT_EQUAL(eexStatusThreadPriorityErr, err);
-    err = eexThreadCreate(thread, NULL, EEX_CFG_USER_THREADS_MAX+1, NULL);
+    err = eexThreadCreate(thread, NULL, EEX_CFG_THREADS_MAX+1, NULL);
     TEST_ASSERT_EQUAL(eexStatusThreadCreateErr, err);
 
     g_all_tests_run = true;
@@ -430,7 +430,7 @@ void _eexEventInit(void *yield_pt, eex_status_t *p_rtn_status, uint32_t *p_rtn_v
 void _eexEventRemove(eex_thread_id_t tid, eex_thread_event_t *event, eex_status_t status);
 void test_event_init_remove(void) {
     eex_thread_event_t *event, int_event;
-    eex_thread_id_t     test_pri = EEX_CFG_USER_THREADS_MAX;
+    eex_thread_id_t     test_pri = EEX_CFG_THREADS_MAX;
     eex_status_t        rtn_status;
     uint32_t            rtn_val;
     eex_thread_cb_t    *tcb;
@@ -488,7 +488,7 @@ void test_event_init_remove(void) {
 
 bool _eexSignalTry(eex_thread_event_t *event);
 void test_signal_try(void) {
-    eex_thread_id_t     test_pri = EEX_CFG_USER_THREADS_MAX;
+    eex_thread_id_t     test_pri = EEX_CFG_THREADS_MAX;
     eex_thread_event_t *event    = &(eexThreadTCB(test_pri)->event);
     eex_status_t        rtn_status;
     uint32_t            rtn_val;
@@ -520,7 +520,7 @@ void test_signal_try(void) {
 
 bool _eexSemaMutexTry(eex_thread_event_t *event);
 void test_semaphore_try(void) {
-    eex_thread_id_t     test_pri = EEX_CFG_USER_THREADS_MAX;
+    eex_thread_id_t     test_pri = EEX_CFG_THREADS_MAX;
     eex_thread_event_t *event    = &(eexThreadTCB(test_pri)->event);
     eex_status_t        rtn_status;
     uint32_t            rtn_val;
@@ -551,11 +551,11 @@ void test_semaphore_try(void) {
 }
 
 void test_mutex_try(void) {
-    eex_thread_event_t *event    = &(eexThreadTCB(EEX_CFG_USER_THREADS_MAX)->event);
+    eex_thread_event_t *event    = &(eexThreadTCB(EEX_CFG_THREADS_MAX)->event);
     eex_status_t        rtn_status;
     uint32_t            rtn_val;
 
-    _eexThreadIDSet(EEX_CFG_USER_THREADS_MAX);
+    _eexThreadIDSet(EEX_CFG_THREADS_MAX);
 
     TEST_ASSERT_EQUAL('MUTX', ((eex_sema_mutex_cb_t *) mutex)->cb.type);
     _eexEventInit((void *) 0xabcd1234, &rtn_status, &rtn_val, 5, 0, mutex, EEX_EVENT_NO_ACTION);
@@ -580,7 +580,7 @@ void test_mutex_try(void) {
 eex_thread_id_t _eexEventTry(eex_thread_id_t evt_thread_priority, const eex_thread_event_t *event);
 void test_event_try(void) {
     eex_thread_event_t *event, int_event;
-    eex_thread_id_t     tid, test_pri = EEX_CFG_USER_THREADS_MAX;
+    eex_thread_id_t     tid, test_pri = EEX_CFG_THREADS_MAX;
     eex_status_t        rtn_status;
     uint32_t            rtn_val;
     eex_thread_cb_t    *tcb;
@@ -646,33 +646,33 @@ void test_event_try(void) {
 }
 
 void test_scheduler(void) {
-    eex_thread_id_t     test_pri = EEX_CFG_USER_THREADS_MAX-2;
+    eex_thread_id_t     test_pri = EEX_CFG_THREADS_MAX-2;
     eex_thread_cb_t    *tcb;
 
     // thread interrupted
     _eexThreadIDSet(test_pri);
-    g_thread_ready_list = 1 << (EEX_CFG_USER_THREADS_MAX-1);
+    g_thread_ready_list = 1 << (EEX_CFG_THREADS_MAX-1);
     tcb = eexScheduler(true);
     TEST_ASSERT_TRUE((1 << (test_pri-1)) & g_thread_interrupted_list);  // thread test_pri interrupted
-    TEST_ASSERT_EQUAL(eexThreadTCB(EEX_CFG_USER_THREADS_MAX), tcb);     // thread EEX_CFG_USER_THREADS_MAX scheduled
+    TEST_ASSERT_EQUAL(eexThreadTCB(EEX_CFG_THREADS_MAX), tcb);          // thread EEX_CFG_THREADS_MAX scheduled
 
     // thread blocked
-    _eexThreadIDSet(test_pri);                                          // previously set to EEX_CFG_USER_THREADS_MAX by call to eexScheduler
+    _eexThreadIDSet(test_pri);                                          // previously set to EEX_CFG_THREADS_MAX by call to eexScheduler
     g_thread_interrupted_list = EEX_EMPTY_THREAD_LIST;
-    g_thread_ready_list = 1 << (EEX_CFG_USER_THREADS_MAX-1);
+    g_thread_ready_list = 1 << (EEX_CFG_THREADS_MAX-1);
     eexThreadTCB(test_pri)->event.action = EEX_EVENT_POST;              // thread event is pending
     tcb = eexScheduler(false);
     TEST_ASSERT_TRUE((1 << (test_pri-1)) & g_thread_waiting_list);      // thread test_pri blocked
-    TEST_ASSERT_EQUAL(eexThreadTCB(EEX_CFG_USER_THREADS_MAX), tcb);     // thread EEX_CFG_USER_THREADS_MAX scheduled
+    TEST_ASSERT_EQUAL(eexThreadTCB(EEX_CFG_THREADS_MAX), tcb);          // thread EEX_CFG_THREADS_MAX scheduled
 
     // thread not blocked, but released a higher priority thread
-    _eexThreadIDSet(test_pri);                                          // previously set to EEX_CFG_USER_THREADS_MAX by call to eexScheduler
+    _eexThreadIDSet(test_pri);                                          // previously set to EEX_CFG_THREADS_MAX by call to eexScheduler
     g_thread_waiting_list = EEX_EMPTY_THREAD_LIST;
-    g_thread_ready_list = 1 << (EEX_CFG_USER_THREADS_MAX-1);
+    g_thread_ready_list = 1 << (EEX_CFG_THREADS_MAX-1);
     eexThreadTCB(test_pri)->event.action = EEX_EVENT_NO_ACTION;         // thread event was successful and removed, free a higher priority thread
     tcb = eexScheduler(false);
     TEST_ASSERT_TRUE((1 << (test_pri-1)) & g_thread_ready_list);        // thread test_pri ready but preempted
-    TEST_ASSERT_EQUAL(eexThreadTCB(EEX_CFG_USER_THREADS_MAX), tcb);     // thread EEX_CFG_USER_THREADS_MAX scheduled
+    TEST_ASSERT_EQUAL(eexThreadTCB(EEX_CFG_THREADS_MAX), tcb);          // thread EEX_CFG_THREADS_MAX scheduled
 
     g_all_tests_run = true;
 }

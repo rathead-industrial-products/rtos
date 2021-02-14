@@ -59,8 +59,8 @@ STATIC bool                 _eexSignalTry(const eex_thread_event_t *event);
 
  ******************************************************************************/
 
-// Array of thread control blocks. The array index is the thread priority. Counting thread 0, there are EEX_CFG_USER_THREADS_MAX+1 threads.
-STATIC eex_thread_cb_t g_thread_tcb[EEX_CFG_USER_THREADS_MAX+1] = { 0 };
+// Array of thread control blocks. The array index is the thread priority. There is no thread 0, but a cb is allocated to make indexing simpler.
+STATIC eex_thread_cb_t g_thread_tcb[EEX_CFG_THREADS_MAX+1] = { 0 };
 
 // Thread lists
 STATIC          eex_thread_list_t   g_thread_ready_list       = EEX_EMPTY_THREAD_LIST;
@@ -139,7 +139,7 @@ int32_t _eexThreadTimeoutNext(void) {
     bool                f_timeout_pending = false;
 
     now = eexKernelTime(NULL);
-    for (tid=1; tid<=EEX_CFG_USER_THREADS_MAX; ++tid) {
+    for (tid=1; tid<=EEX_CFG_THREADS_MAX; ++tid) {
         if (_eexThreadListContains(waiting_list, tid)) {
             tcb = eexThreadTCB(tid);
             // ignore timeout == 0 (no timeout) and timeout == eexWaitForever
@@ -577,7 +577,7 @@ STATIC eex_thread_id_t _eexEventTry(eex_thread_id_t evt_thread_priority, eex_thr
 
     assert(event);
     assert(event->kobj);
-    assert(evt_thread_priority <= EEX_CFG_USER_THREADS_MAX);
+    assert(evt_thread_priority <= EEX_CFG_THREADS_MAX);
     p_kobj = event->kobj;
     f_pend = (event->action == EEX_EVENT_PEND);
     f_post = (event->action == EEX_EVENT_POST);
@@ -722,8 +722,8 @@ STATIC bool _eexSignalTry(const eex_thread_event_t *event) {
 eex_status_t eexThreadCreate(eex_thread_fn_t fn_thread, void * const tls, const uint32_t priority, const char *name) {
     eex_thread_cb_t * tcb;
 
-    // valid thread priorities are 1 through EEX_CFG_USER_THREADS_MAX inclusive.
-    if((priority == 0) || (priority > EEX_CFG_USER_THREADS_MAX)) { return (eexStatusThreadCreateErr); }
+    // valid thread priorities are 1 through EEX_CFG_THREADS_MAX inclusive.
+    if((priority == 0) || (priority > EEX_CFG_THREADS_MAX)) { return (eexStatusThreadCreateErr); }
 
     tcb = eexThreadTCB(priority);
 
@@ -742,7 +742,7 @@ eex_status_t eexThreadCreate(eex_thread_fn_t fn_thread, void * const tls, const 
 }
 
 eex_thread_cb_t * eexThreadTCB(eex_thread_id_t tid) {
-    assert (tid <= EEX_CFG_USER_THREADS_MAX);
+    assert (tid <= EEX_CFG_THREADS_MAX);
     return (&g_thread_tcb[tid]);
 }
 
@@ -751,7 +751,7 @@ eex_thread_id_t eexThreadID(void) {
 }
 
 STATIC void _eexThreadIDSet(eex_thread_id_t tid) {
-    assert (tid <= EEX_CFG_USER_THREADS_MAX);
+    assert (tid <= EEX_CFG_THREADS_MAX);
     g_thread_running = tid;
 }
 
