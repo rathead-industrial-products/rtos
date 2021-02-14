@@ -118,7 +118,6 @@ void test_tagged_data_generator(void) {
 }
 
 // Immune to rollover effects as long as the difference is less than 2^31 (half the total unsigned value)
-int32_t eexTimeDiff(uint32_t time, uint32_t ref);
 void test_time_diff(void) {
     TEST_ASSERT_EQUAL_INT32( 0,           eexTimeDiff(0, 0));    // behavior around zero
     TEST_ASSERT_EQUAL_INT32( 1,           eexTimeDiff(1, 0));
@@ -287,6 +286,110 @@ void test_thread_list_hpt(void) {
 
     g_all_tests_run = true;
 }
+
+int32_t                     _eexThreadTimeoutNext(void);
+void test_thread_timeout_next(void) {
+    eex_thread_id_t     test_pri_H = EEX_CFG_USER_THREADS_MAX;
+    eex_thread_id_t     test_pri_M = EEX_CFG_USER_THREADS_MAX-1;
+    eex_thread_id_t     test_pri_L = EEX_CFG_USER_THREADS_MAX-2;
+
+    // Only threads on the waiting list are searched for timeouts
+    _eexThreadListAdd(&g_thread_waiting_list, test_pri_H);
+    _eexThreadListAdd(&g_thread_waiting_list, test_pri_M);
+    _eexThreadListAdd(&g_thread_waiting_list, test_pri_L);
+
+    // threads block on events, so the timeout is associated with the event, not the thread
+    // timeout value is clock time (i.e. g_timer_ms value)
+    g_thread_tcb[test_pri_H].event.timeout = 10;
+    g_thread_tcb[test_pri_M].event.timeout = 30;
+    g_thread_tcb[test_pri_L].event.timeout = 20;
+
+    g_timer_ms = 5;
+
+    // _eexThreadTimeoutNext() returns time until expiry (i.e. timeout - g_timer_ms)
+    // or 0 if there are no timeouts pending
+    // or negative if a thread has timed out
+    // simplist situation:
+    TEST_ASSERT_EQUAL(5, _eexThreadTimeoutNext());    // event_H will timeout first
+    g_thread_tcb[test_pri_H].event.timeout = 0;
+    TEST_ASSERT_EQUAL(15, _eexThreadTimeoutNext());   // event_L will timeout next
+    g_thread_tcb[test_pri_L].event.timeout = 0;
+    TEST_ASSERT_EQUAL(25, _eexThreadTimeoutNext());   // event_M will timeout last
+    g_thread_tcb[test_pri_M].event.timeout = 0;
+    TEST_ASSERT_EQUAL(0, _eexThreadTimeoutNext());    // 0 is flag no timeouts pending
+
+    // no timeout and eexWaitForever
+    g_thread_tcb[test_pri_H].event.timeout = 0;
+    g_thread_tcb[test_pri_M].event.timeout = 0;
+    g_thread_tcb[test_pri_L].event.timeout = eexWaitForever;
+    TEST_ASSERT_EQUAL(0, _eexThreadTimeoutNext());    // 0 is flag no timeouts pending
+
+    // transition around eexWaitMax
+    g_thread_tcb[test_pri_H].event.timeout = 0;
+    g_thread_tcb[test_pri_M].event.timeout = 0;
+
+    g_timer_ms = 0;
+    g_thread_tcb[test_pri_L].event.timeout = eexWaitMax + g_timer_ms;
+    TEST_ASSERT_EQUAL(eexWaitMax, _eexThreadTimeoutNext());
+    g_timer_ms = 1;
+    g_thread_tcb[test_pri_L].event.timeout = eexWaitMax + g_timer_ms;
+    TEST_ASSERT_EQUAL(eexWaitMax, _eexThreadTimeoutNext());
+    g_timer_ms = 1024;
+    g_thread_tcb[test_pri_L].event.timeout = eexWaitMax + g_timer_ms;
+    TEST_ASSERT_EQUAL(eexWaitMax, _eexThreadTimeoutNext());
+
+    g_timer_ms = eexWaitMax-2;      // 0x7ffffffd
+    g_thread_tcb[test_pri_L].event.timeout = 1 + g_timer_ms;  // eexWaitMax - 1
+    g_thread_tcb[test_pri_M].event.timeout = 2 + g_timer_ms;  // eexWaitMax
+    g_thread_tcb[test_pri_H].event.timeout = 3 + g_timer_ms;  // eexWaitMax + 1
+    TEST_ASSERT_EQUAL(1, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_L].event.timeout = 0;
+    TEST_ASSERT_EQUAL(2, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_M].event.timeout = 0;
+    TEST_ASSERT_EQUAL(3, _eexThreadTimeoutNext());
+
+    // transition timeouts around timer rollover and eexWaitForever (= -1)
+    g_thread_tcb[test_pri_H].event.timeout = -2;  // -1 and 0 will be ignored (tested above)
+    g_thread_tcb[test_pri_M].event.timeout = 1;   // timeout will never be 0, that's the flag for no timeout
+    g_thread_tcb[test_pri_L].event.timeout = 2;
+    g_timer_ms = -100;
+    TEST_ASSERT_EQUAL(98, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_H].event.timeout = 0;
+    TEST_ASSERT_EQUAL(101, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_M].event.timeout = 0;
+    TEST_ASSERT_EQUAL(102, _eexThreadTimeoutNext());
+
+    // transition kernel time around timer rollover
+    g_thread_tcb[test_pri_H].event.timeout = 100;
+    g_thread_tcb[test_pri_M].event.timeout = 101;
+    g_thread_tcb[test_pri_L].event.timeout = 102;
+
+    g_timer_ms = -1;
+    TEST_ASSERT_EQUAL(101, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_H].event.timeout = 200;
+    TEST_ASSERT_EQUAL(102, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_M].event.timeout = 201;
+    TEST_ASSERT_EQUAL(103, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_L].event.timeout = 202;
+
+    g_timer_ms = 0;
+    TEST_ASSERT_EQUAL(200, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_H].event.timeout = 300;
+    TEST_ASSERT_EQUAL(201, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_M].event.timeout = 301;
+    TEST_ASSERT_EQUAL(202, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_L].event.timeout = 302;
+
+    g_timer_ms = 1;
+    TEST_ASSERT_EQUAL(299, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_H].event.timeout = 0;
+    TEST_ASSERT_EQUAL(300, _eexThreadTimeoutNext());
+    g_thread_tcb[test_pri_M].event.timeout = 0;
+    TEST_ASSERT_EQUAL(301, _eexThreadTimeoutNext());
+
+    g_all_tests_run = true;
+}
+
 
 void test_thread_timeout(void) {
     eex_thread_id_t     test_pri = EEX_CFG_USER_THREADS_MAX;
