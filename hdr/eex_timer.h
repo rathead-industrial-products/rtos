@@ -24,14 +24,14 @@
 typedef void (*eex_timer_fn_t) (void * const argument);
 
 typedef struct eex_timer_cb_t {
-    eex_timer_fn_t          fn_timer;       // start address of timer function
-    void                        *arg;       // timer function argument
-    const char                 *name;       // timer name
-    uint32_t                 control;       // timer control and status bit field
-    uint32_t                interval;       // ms between periodic calls to fn_timer
-    uint32_t               remaining;       // ms remaining to expiry when timer stopped
-    uint32_t                  expiry;       // kernel time when timer expires
-    eex_timer_cb_t       *next_timer;       // next timer in linked list
+    eex_timer_fn_t       fn_timer;       // start address of timer function
+    void                     *arg;       // timer function argument
+    const char              *name;       // timer name
+    uint32_t              control;       // timer control and status bit field
+    uint32_t             interval;       // ms between periodic calls to fn_timer
+    uint32_t            remaining;       // ms remaining to expiry when timer stopped
+    uint32_t               expiry;       // kernel time when timer expires
+    struct eex_timer_cb_t   *next;       // next timer in linked list
 } eex_timer_cb_t;
 
 
@@ -55,7 +55,7 @@ void                eexTimerAdd(eex_timer_cb_t * timer);
 void                eexTimerRemove(eex_timer_cb_t * timer);
 void                eexTimerStart(eex_timer_cb_t*  timer, uint32_t delay);
 void                eexTimerStop(eex_timer_cb_t * timer);
-void                eexTimerResume(eex_timer_cb_y * timer);
+void                eexTimerResume(eex_timer_cb_t * timer);
 eex_timer_status_t  eexTimerStatus(eex_timer_cb_t * timer);
 
 
