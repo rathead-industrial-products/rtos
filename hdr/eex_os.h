@@ -71,6 +71,11 @@ extern "C" {
     #define EEX_SEGGER_SYSTEMVIEW           0
     #undef  EEX_CFG_THREADS_MAX
     #define EEX_CFG_THREADS_MAX            32
+    #ifdef UNIT_TEST
+        #define STATIC
+        #else
+        #define STATIC static
+    #endif
 #endif
 
 /*****************************************************************************/
@@ -319,17 +324,17 @@ uint32_t          eexCPUCLZ(uint32_t x);
 #undef  EEX_SEMAPHORE_NEW
 #define EEX_SEMAPHORE_NEW(name, maxval, ival)                                                   \
 static eex_sema_mutex_cb_t name##_storage = { { 'SEMA', 0, 0 }, { 0, ival }, maxval, 0};        \
-static void * const name = (void *) &name##_storage
+STATIC void * const name = (void *) &name##_storage
 
 #undef  EEX_MUTEX_NEW
 #define EEX_MUTEX_NEW(name)                                                                     \
 static eex_sema_mutex_cb_t name##_storage = { { 'MUTX', 0, 0 }, { 0, 1 }, 1, 0};                \
-static void * const name = (void *) &name##_storage
+STATIC void * const name = (void *) &name##_storage
 
 #undef  EEX_SIGNAL_NEW
 #define EEX_SIGNAL_NEW(name)                                                                     \
 static eex_signal_cb_t name##_storage = { { 'SIGL', 0, 0 }, 0};                                  \
-static void * const name = (void *) &name##_storage
+STATIC void * const name = (void *) &name##_storage
 
 
 // Interrupt priority levels. The lowest numbers are the highest priority.
