@@ -197,11 +197,7 @@ void eexTimerRemove(eex_timer_cb_t * timer) {
 void eexTimerStart(eex_timer_cb_t * timer, uint32_t delay) {
 
     timer->remaining = delay;
-    _atomicBitSet(&timer->control, _timerCtlStart);  // set start bit
-
-    /* Posts never fail, ignore return status. Signal value has not meaning. */
-    eexPostSignal(NULL, 1, sig_timer);
-
+    eexTimerResume(timer);
 }
 
 
@@ -260,7 +256,7 @@ eex_timer_status_t eexTimerStatus(eex_timer_cb_t * timer) {
 
 /*******************************************************************************
 
-    void _eexTimerTask(eexTimerTask_tls *tls)
+    void _eexTimerControlThread(void * const argument)
 
     This function is not part of the API.
 
@@ -268,7 +264,7 @@ eex_timer_status_t eexTimerStatus(eex_timer_cb_t * timer) {
     this thread is created by eexKernelStart().
 
 ******************************************************************************/
-void _eexTimerThread(void * const argument) {
+void _eexTimerControlThread(void * const argument) {
     static  eex_status_t    rtn_status;
     static  uint32_t        rtn_val;
     eex_timer_cb_t          dummy_cb, *timer, *active;
