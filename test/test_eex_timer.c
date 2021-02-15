@@ -25,7 +25,9 @@
  *    MODULE INTERNAL DATA
  ******************************************************************************/
 
-extern volatile uint32_t  g_timer_ms;
+extern eex_timer_cb_t *g_active_timer_list_head;
+extern eex_timer_cb_t *g_add_timer_list_head;
+extern eex_signal_cb_t *sig_timer;
 
 
 /*******************************************************************************
@@ -46,6 +48,8 @@ bool  g_all_tests_run;
  *    SETUP, TEARDOWN
  ******************************************************************************/
 void setUp(void) {
+    g_active_timer_list_head = NULL;
+    g_add_timer_list_head    = NULL;
     g_all_tests_run = false;
 }
 
@@ -101,6 +105,63 @@ void test_bit_clr(void) {
 
     g_all_tests_run = true;
 }
+
+void test_add_timer(void) {
+    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, -1, 100,-1, -1, NULL };
+    eex_timer_cb_t  timer2_cb = { NULL, NULL, NULL, -1, 100,-1, -1, NULL };
+
+    // timer with NULL function pointer won't get added
+    sig_timer->signal = 0;
+    eexTimerAdd(&timer1_cb);
+    TEST_ASSERT_EQUAL (NULL, g_add_timer_list_head);
+    TEST_ASSERT_EQUAL (0, sig_timer->signal);
+
+    // add timer1
+    timer1_cb.fn_timer = (eex_timer_fn_t) 0x11111111;
+    timer1_cb.next     = (eex_timer_cb_t *) -1;   // initialize to non-null
+    eexTimerAdd(&timer1_cb);
+    TEST_ASSERT_EQUAL (&timer1_cb, g_add_timer_list_head);
+    TEST_ASSERT_EQUAL (NULL, timer1_cb.next);
+    TEST_ASSERT_EQUAL (1, sig_timer->signal);
+
+    // add timer2
+    sig_timer->signal = 0;
+    timer2_cb.fn_timer = (eex_timer_fn_t) 0x22222222;
+    timer2_cb.next     = (eex_timer_cb_t *) -1;   // initialize to non-null
+    eexTimerAdd(&timer2_cb);
+    TEST_ASSERT_EQUAL (&timer2_cb, g_add_timer_list_head);  // timers insert into list at head
+    TEST_ASSERT_EQUAL (&timer1_cb, timer2_cb.next);
+    TEST_ASSERT_EQUAL (NULL, timer1_cb.next);
+    TEST_ASSERT_EQUAL (1, sig_timer->signal);
+
+    g_all_tests_run = true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
