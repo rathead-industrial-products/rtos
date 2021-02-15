@@ -12,9 +12,13 @@
 #include "eex_os.h"
 #include "eex_timer.h"
 
+#pragma GCC diagnostic ignored "-Wmultichar"    // Don't complain about e.g. 'MUTX'
 
-
-
+#ifdef UNIT_TEST
+#define STATIC
+#else
+#define STATIC static
+#endif
 
 /*******************************************************************************
  *
@@ -77,8 +81,9 @@ typedef enum  {
     _timerCtlRemove     = 10,             // app has commanded timer be removed
 } eex_timer_control_t;
 
-static eex_timer_cb_t *g_active_timer_list_head = NULL;
-static eex_timer_cb_t *g_add_timer_list_head    = NULL;
+
+STATIC eex_timer_cb_t *g_active_timer_list_head = NULL;
+STATIC eex_timer_cb_t *g_add_timer_list_head    = NULL;
 
 
 EEX_SIGNAL_NEW(sig_timer);        // Used to signal timer thread when a timer function is called
@@ -109,7 +114,7 @@ STATIC void  _atomicBitSet(uint32_t * const field, uint32_t const bit) {
     do {
         old = *field;
         new = old | (0x80000000u >> (32 - bit));
-    } while(eexCPUAtomicCAS(field, old, new));
+    } while(eexCPUAtomic32CAS(field, old, new));
 }
 
 STATIC void  _atomicBitClr(uint32_t * const field, uint32_t const bit) {
@@ -121,7 +126,7 @@ STATIC void  _atomicBitClr(uint32_t * const field, uint32_t const bit) {
     do {
         old = *field;
         new = old & ~(0x80000000u >> (32 - bit));
-    } while(eexCPUAtomicCAS(field, old, new));
+    } while(eexCPUAtomic32CAS(field, old, new));
 }
 
 
@@ -137,18 +142,18 @@ STATIC void  _atomicBitClr(uint32_t * const field, uint32_t const bit) {
 
 ******************************************************************************/
 void eexTimerAdd(eex_timer_cb_t * timer) {
-    eex_timer_cb_t * old_head, new_head;
+    eex_timer_cb_t  *old_head, *new_head;
 
     if (!timer->fn_timer) { return; }   // check for null function pointer
     timer->control   = 0;
     timer->remaining = 0;
     timer->expiry    = 0;
 
-    do {
+    do {  // cast to uint32_t for compatibility with eexCPUAtomicCAS()
         old_head = g_add_timer_list_head;
         new_head = timer;
         timer->next = old_head;
-    } while(eexCPUAtomicCAS(&g_add_timer_list_head, old_head, new_head));
+    } while(eexCPUAtomicPtrCAS((void * volatile *) &g_add_timer_list_head, old_head, new_head));
 
     /* Posts never fail, ignore return status. Signal value has no meaning. */
     eexPostSignal(NULL, 1, sig_timer);
@@ -249,7 +254,7 @@ void eexTimerResume(eex_timer_cb_t * timer) {
 
 ******************************************************************************/
 eex_timer_status_t eexTimerStatus(eex_timer_cb_t * timer) {
-    return (timer->status & _timerStatusBits);
+    return (timer->control & _timerStatusBits);
 }
 
 
@@ -263,7 +268,7 @@ eex_timer_status_t eexTimerStatus(eex_timer_cb_t * timer) {
     this thread is created by eexKernelStart().
 
 ******************************************************************************/
-void eexTimerThread(void * const argument) { {
+void _eexTimerThread(void * const argument) {
     static  eex_status_t    rtn_status;
     static  uint32_t        rtn_val;
     eex_timer_cb_t          dummy_cb, *timer, *active;
@@ -286,7 +291,7 @@ void eexTimerThread(void * const argument) { {
         if (g_add_timer_list_head) {
             do {
                 timer = g_add_timer_list_head;
-            } while(eexCPUAtomicCAS(&g_add_timer_list_head, add_timer, NULL));
+            } while(eexCPUAtomicPtrCAS((void * volatile *) &g_add_timer_list_head, timer, NULL));
 
             while (timer) {
                 // severed timer list and active_timer list are now thread safe
@@ -341,7 +346,7 @@ void eexTimerThread(void * const argument) { {
              *        else
              *            Atomically clear running bit
              */
-            int32_t time_to_expiry = eexTimeDiff(timer->expiry, eexKernelTime(NULL);  //  0 or negative if timer expired
+            int32_t time_to_expiry = eexTimeDiff(timer->expiry, eexKernelTime(NULL));  //  0 or negative if timer expired
             if ((timer->control & eexTimerRunning) && (time_to_expiry <= 0)) {
                 timer->fn_timer(timer->arg);    // call application timer function
                 if (timer->interval) {
@@ -352,6 +357,7 @@ void eexTimerThread(void * const argument) { {
                     timer->expiry = 0;
                     _atomicBitClr(&timer->control, _timerStatusRunning);
                 }
+            }
 
             /*
              *    If start bit set

@@ -35,7 +35,12 @@ volatile uint32_t g_timer_ms = 0;
 // schedule request pending
 static volatile bool g_f_pend_scheduler = false;
 
-uint32_t eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
+void *  eexCPUAtomicPtrCAS(void * volatile *addr, void * expected, void * store) {
+    *addr = store;
+    return (0);
+}
+
+uint32_t eexCPUAtomic32CAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
     *addr = store;
     return (0);
 }
@@ -98,7 +103,7 @@ uint32_t eexKernelTime(uint32_t *us) {
 
 #if (__CORTEX_M == 0)
 
-uint32_t eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
+uint32_t eexCPUAtomic32CAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
     uint32_t rslt = 1;
     uint32_t primask;
 
@@ -145,7 +150,8 @@ uint32_t eexCPUCLZ(uint32_t x) {
 #endif    /* (__CORTEX_M == 0) */
 
 #if ((__CORTEX_M == 3) || (__CORTEX_M == 4))
-uint32_t eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
+
+uint32_t eexCPUAtomic32CAS(uint32_t volatile *addr, uint32_t expected, uint32_t store) {
 
     if (__LDREXW(addr) != expected) {
         return 1;
@@ -160,8 +166,20 @@ uint32_t eexCPUCLZ(uint32_t x) {
 
 #if ((__CORTEX_M == 0) || (__CORTEX_M == 3) || (__CORTEX_M == 4))
 
+// eexCPUAtomicPtrCAS is eexCPUAtomic32CAS with 32 bit Arm Cortex
+void * eexCPUAtomicPtrCAS(void * volatile *addr, void * expected, void * store) {
+    return ((void *) eexCPUAtomic32CAS(((uint32_t volatile) *addr, (uint32_t) expected, (uint32_t )store));
+}
+
+
+// creates a timer thread if EEX_CFG_TIMER_THREAD_PRIORITY is nonzero
 // triggers pendSV exception and never returns
 void eexKernelStart(void) {
+
+    #if (EEX_CFG_TIMER_THREAD_PRIORITY != 0)
+        #include eex_timer.h
+        (void) eexThreadCreate(_eexTimerThread, NULL, EEX_CFG_TIMER_THREAD_PRIORITY, "timer_control_thread"); // return ignored, nothing can be done if error
+    #endif
 
     NVIC_SetPriority(PendSV_IRQn, EEX_CFG_INT_PRI_PENDSV);    // pendSV is always enabled at lowest possible priority
     (void) SysTick_Config(((EEX_CFG_CPU_FREQ)/1000));         // configure systick for 1 ms ticks

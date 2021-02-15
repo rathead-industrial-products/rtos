@@ -202,7 +202,7 @@ STATIC void  _eexBMSet(eex_bm_t * const a, uint32_t const bit) {
     do {
         old_bm = *a;
         new_bm = old_bm | (0x80000000u >> (32 - bit));
-    } while(eexCPUAtomicCAS(a, old_bm, new_bm));
+    } while(eexCPUAtomic32CAS(a, old_bm, new_bm));
 }
 
 STATIC void  _eexBMClr(eex_bm_t * const a, uint32_t const bit) {
@@ -214,7 +214,7 @@ STATIC void  _eexBMClr(eex_bm_t * const a, uint32_t const bit) {
     do {
         old_bm = *a;
         new_bm = old_bm & ~(0x80000000u >> (32 - bit));
-    } while(eexCPUAtomicCAS(a, old_bm, new_bm));
+    } while(eexCPUAtomic32CAS(a, old_bm, new_bm));
 }
 
 STATIC uint32_t  _eexBMState(eex_bm_t const * const a, uint32_t const bit) {
@@ -396,7 +396,7 @@ eex_thread_cb_t * eexScheduler(bool from_interrupt) {
             ms_asleep = eexIdleHook(_eexThreadTimeoutNext());
             // adjust ms timer for time spent in idle hook
             do { old_ms = g_timer_ms; }
-            while (eexCPUAtomicCAS(&g_timer_ms, old_ms, old_ms + ms_asleep));
+            while (eexCPUAtomic32CAS(&g_timer_ms, old_ms, old_ms + ms_asleep));
 
             // reset waiting thread mask and run scheduler again
             //EEX_PROFILE_SCHED_IDLE;   // tell profiler system is idling if no idle thread dispatch
@@ -676,7 +676,7 @@ STATIC bool _eexSemaMutexTry(const eex_thread_event_t *event) {
         if (f_post && (sema->cb.type == 'SEMA') && (old_cnt.data == sema->max_val)) { return (false); }   // semaphores all taken
         new_cnt = _eexNewTaggedData((uint16_t) (old_cnt.data + (f_post ? 1 : -1)));
         if (rtn_val) { *rtn_val = (uint32_t) new_cnt.data; }
-    } while(eexCPUAtomicCAS(&(sema->count.td), old_cnt.td, new_cnt.td));
+    } while(eexCPUAtomic32CAS(&(sema->count.td), old_cnt.td, new_cnt.td));
 
     assert (sema->count.data <= sema->max_val);                               // semaphore/mutex overflow
     assert (!((sema->cb.type == 'MUTX') && f_post && (old_cnt.data == 1)));   // recursive mutexes are NOT supported
@@ -706,7 +706,7 @@ STATIC bool _eexSignalTry(const eex_thread_event_t *event) {
         set_bits = signal & event->val;                     // val is mask if pend
         if (f_pend) { new_signal = signal & ~set_bits; }    // clear signaled bits
         else        { new_signal = signal | event->val; }   // add new bits to signal is post
-    } while(eexCPUAtomicCAS(p_signal, signal, new_signal));
+    } while(eexCPUAtomic32CAS(p_signal, signal, new_signal));
 
     if (event->p_val) { *(event->p_val) = set_bits; }       // n/a if post
     return((f_post) ? true : (bool) set_bits);              // post always succeeds

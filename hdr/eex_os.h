@@ -256,7 +256,8 @@ bool              eexPendPost(void *func_yield_pt, eex_status_t *p_rtn_status, u
 eex_thread_id_t   eexThreadTimeout(void);   // Returns the thread ID of the highest priority waiting task to time out
 int32_t           eexTimeDiff(uint32_t time, uint32_t ref);
 eex_thread_cb_t * eexThreadTCB(eex_thread_id_t tid);
-uint32_t          eexCPUAtomicCAS(uint32_t volatile *addr, uint32_t expected, uint32_t store);
+uint32_t          eexCPUAtomic32CAS(uint32_t volatile *addr, uint32_t expected, uint32_t store);
+void *            eexCPUAtomicPtrCAS(void * volatile *addr, void * expected, void * store);
 uint32_t          eexCPUCLZ(uint32_t x);
 
 
