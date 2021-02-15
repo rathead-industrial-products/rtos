@@ -46,7 +46,7 @@ extern "C" {
 #endif
 
 #ifndef EEX_CFG_TIMER_THREAD_PRIORITY
-#define EEX_CFG_TIMER_THREAD_PRIORITY       0       // Software timer(s) priority
+#define EEX_CFG_TIMER_THREAD_PRIORITY       0       // Software timer(s) priority 1-32 (0 = no software timers)
 #endif
 
 /* System Configuration */
