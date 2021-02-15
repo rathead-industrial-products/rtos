@@ -19,6 +19,16 @@
  *    DEFINITIONS
  ******************************************************************************/
 
+// Copied from eex_timer.c
+typedef enum  {
+    _timerStatusBits    = 0x000000ff,     // status bits defined in eex_timer.h
+                                          // field positions of status and control bits
+    _timerStatusActive  = 1,
+    _timerStatusRunning = 2,
+    _timerCtlStart      = 8,              // app has commanded timer to start
+    _timerCtlStop       = 9,              // app has commanded timer to start
+    _timerCtlRemove     = 10,             // app has commanded timer be removed
+} eex_timer_control_t;
 
 
 /*******************************************************************************
@@ -50,6 +60,7 @@ bool  g_all_tests_run;
 void setUp(void) {
     g_active_timer_list_head = NULL;
     g_add_timer_list_head    = NULL;
+    sig_timer->signal = 0;
     g_all_tests_run = false;
 }
 
@@ -107,8 +118,8 @@ void test_bit_clr(void) {
 }
 
 void test_add_timer(void) {
-    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, -1, 100,-1, -1, NULL };
-    eex_timer_cb_t  timer2_cb = { NULL, NULL, NULL, -1, 100,-1, -1, NULL };
+    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, -1, 100, -1, -1, NULL };
+    eex_timer_cb_t  timer2_cb = { NULL, NULL, NULL, -1, 100, -1, -1, NULL };
 
     // timer with NULL function pointer won't get added
     sig_timer->signal = 0;
@@ -137,25 +148,74 @@ void test_add_timer(void) {
     g_all_tests_run = true;
 }
 
+void test_remove_timer(void) {
+    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, 0, 0, 0, 0, NULL };
 
+    TEST_ASSERT_EQUAL (0, timer1_cb.control);
+    TEST_ASSERT_EQUAL (0, sig_timer->signal);
+    eexTimerRemove(&timer1_cb);
+    TEST_ASSERT_EQUAL (1 << (_timerCtlRemove-1), timer1_cb.control);
+    TEST_ASSERT_EQUAL (1, sig_timer->signal);
 
+    g_all_tests_run = true;
+}
 
+void test_start_timer(void) {
+    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, 0, 0, 0, 0, NULL };
 
+    TEST_ASSERT_EQUAL (0, timer1_cb.control);
+    TEST_ASSERT_EQUAL (0, timer1_cb.remaining);
+    TEST_ASSERT_EQUAL (0, sig_timer->signal);
+    eexTimerStart(&timer1_cb, 0x1234);
+    TEST_ASSERT_EQUAL (1 << (_timerCtlStart-1), timer1_cb.control);
+    TEST_ASSERT_EQUAL (0x1234, timer1_cb.remaining);
+    TEST_ASSERT_EQUAL (1, sig_timer->signal);
 
+    g_all_tests_run = true;
+}
 
+void test_stop_timer(void) {
+    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, 0, 0, 0, 0, NULL };
 
+    TEST_ASSERT_EQUAL (0, timer1_cb.control);
+    TEST_ASSERT_EQUAL (0, sig_timer->signal);
+    eexTimerStop(&timer1_cb);
+    TEST_ASSERT_EQUAL (1 << (_timerCtlStop-1), timer1_cb.control);
+    TEST_ASSERT_EQUAL (1, sig_timer->signal);
 
+    g_all_tests_run = true;
+}
 
+void test_resume_timer(void) {
+    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, 0, 0, 0, 0, NULL };
 
+    TEST_ASSERT_EQUAL (0, timer1_cb.control);
+    TEST_ASSERT_EQUAL (0, sig_timer->signal);
+    eexTimerResume(&timer1_cb);
+    TEST_ASSERT_EQUAL (1 << (_timerCtlStart-1), timer1_cb.control);
+    TEST_ASSERT_EQUAL (1, sig_timer->signal);
 
+    g_all_tests_run = true;
+}
 
+void test_timer_status(void) {
+    eex_timer_cb_t  timer1_cb = { NULL, NULL, NULL, 0, 0, 0, 0, NULL };
 
+    TEST_ASSERT_EQUAL (0, timer1_cb.control);
+    TEST_ASSERT_EQUAL (0, eexTimerStatus(&timer1_cb));
+    timer1_cb.control = 0xffffff;
+    TEST_ASSERT_EQUAL (0xffffff & _timerStatusBits, eexTimerStatus(&timer1_cb));
+    timer1_cb.control = 1;
+    TEST_ASSERT_EQUAL (1, eexTimerStatus(&timer1_cb));
+    timer1_cb.control = 2;
+    TEST_ASSERT_EQUAL (2, eexTimerStatus(&timer1_cb));
+    timer1_cb.control = 0x80;
+    TEST_ASSERT_EQUAL (0x80, eexTimerStatus(&timer1_cb));
+    timer1_cb.control = 0x100;
+    TEST_ASSERT_EQUAL (0, eexTimerStatus(&timer1_cb));
 
-
-
-
-
-
+    g_all_tests_run = true;
+}
 
 
 
