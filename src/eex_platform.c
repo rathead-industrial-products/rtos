@@ -27,6 +27,14 @@
 volatile uint32_t g_timer_ms = 0;
 
 
+void _eexTimerControlThread(void * const argument);
+void _createTimerControlThread(void) {
+    if (EEX_CFG_TIMER_THREAD_PRIORITY != 0) {
+        (void) eexThreadCreate(_eexTimerThread, NULL, EEX_CFG_TIMER_THREAD_PRIORITY, "timer_control_thread"); // return ignored, nothing can be done if error
+    }
+}
+
+
 #if (defined __CONSOLE)
 
 #include  <signal.h>
@@ -50,7 +58,7 @@ uint32_t eexCPUCLZ(uint32_t x) {
 }
 
 
-void Alarm_Handler(int sig) {
+void _alarmHandler(int sig) {
     ++g_timer_ms;
     // if (eexThreadTimeout()) {
     // run scheduler on exit from signal handler
@@ -69,12 +77,14 @@ void  eexKernelStart(void) {
     eex_thread_cb_t   *tcb;
 
     // set up 1 ms interrupt
-    //signal(SIGALRM, Alarm_Handler);
+    //signal(SIGALRM, _alarmHandler);
     it.it_interval.tv_sec  = 0;
     it.it_interval.tv_usec = 1000;
     it.it_value.tv_sec  = 0;
     it.it_value.tv_usec = 1000;
-    (void) setitimer(ITIMER_REAL, &it, NULL); // ITIMER_VIRTUAL doesn't seem to work
+    (void) setitimer(ITIMER_REAL, &it, NULL); // ITIMER_VIRTUAL doesn't work with Cygwin
+
+    _createTimerControlThread();
 
     // loop forever dispatching threads
     for (;;) {
@@ -176,10 +186,7 @@ void * eexCPUAtomicPtrCAS(void * volatile *addr, void * expected, void * store) 
 // triggers pendSV exception and never returns
 void eexKernelStart(void) {
 
-    #if (EEX_CFG_TIMER_THREAD_PRIORITY != 0)
-        #include eex_timer.h
-        (void) eexThreadCreate(_eexTimerThread, NULL, EEX_CFG_TIMER_THREAD_PRIORITY, "timer_control_thread"); // return ignored, nothing can be done if error
-    #endif
+    _createTimerControlThread();
 
     NVIC_SetPriority(PendSV_IRQn, EEX_CFG_INT_PRI_PENDSV);    // pendSV is always enabled at lowest possible priority
     (void) SysTick_Config(((EEX_CFG_CPU_FREQ)/1000));         // configure systick for 1 ms ticks
